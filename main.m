@@ -60,7 +60,7 @@ clear
 clear
 %initializing variables
 
-geo.fnx=0;				    %number of panels on flap chords (2d array)
+geo.fnx=0;		     %(''f'' sta per flap) number of panels on flap chords (2d array)
 geo.ny=1;					%number of panels in span (2d array)
 geo.nx=1;					%number of panels on chord (2d array)
 geo.fsym=0;				    %flap deflection symmetry boolean bit  (2d array)
@@ -152,6 +152,7 @@ while loop==1;
          geo.ref_point=setrefpoint(geo.ref_point,ref);
          
      case 5
+      %Lattice generation<-------------
          %try
             disp(' ')
             quest=questions(12);

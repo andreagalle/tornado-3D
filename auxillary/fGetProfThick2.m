@@ -1,4 +1,4 @@
-function [t1, t2]=fGetProfThick(foils,sparpos)
+Xfunction [t1, t2]=fGetProfThick(foils,sparpos)
 %  Input: 2 airfoils per partition: inboard & outboard
 %  INPUT: foils = {'name1', 'name2'};
 %  Input: spar location where thickness of airfoil is required (%chord)

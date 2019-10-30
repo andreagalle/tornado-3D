@@ -139,9 +139,11 @@ CHORDS=[];
 loopsperwing=geo.nelem;
 noofloops=loopsperwing;
 temp=0;
-noofwings=size(loopsperwing');
+noofwings=size(loopsperwing');          
 
-for s=1:noofwings			%Intermediate variable setuploop
+%determino le corde e le origini degli elementi di radice
+ 
+for s=1:noofwings		%Intermediate variable setuploop(numero di colonne di geo.nelem)
 	CHORDS(s,1)=geo.c(s);   %calculating chords of first element
 	SX(s,1)=geo.startx(s);	%Element apex calculation
 	SY(s,1)=geo.starty(s);	% Same-o
@@ -149,13 +151,14 @@ for s=1:noofwings			%Intermediate variable setuploop
 end
 t=0;						%resetting ticker variable
 
+%determino corde e origini di tutti gli altri elementi 't' (per ogni ala 's')
 for s=1:noofwings
 	for t=1:(noofloops(s))
       %Chord loop, generating chords for wing sections.
-      %And startingpoints for partition-quads
+      %And startingpoints for partition-quads. 
       
-      CHORDS(s,t+1)=CHORDS(s,t)*geo.T(s,t);	%calculating
-      									    %element root-chord
+      CHORDS(s,t+1)=CHORDS(s,t)*geo.T(s,t);	%calculating element root-chord
+      									    
             
       SX(s,t+1)=0.25*CHORDS(s,t)+geo.b(s,t)*(tan(geo.SW(s,t)))...
          -0.25*CHORDS(s,t+1)+SX(s,t) ;					
@@ -167,17 +170,17 @@ end
 
 %MAIN GEOMETRY SETUP LOOP, CREATES Partition QUAD PANELS, VORTICIES AND COLL-POINTS
 for s=1:noofwings
-   for t=1:noofloops(s) %setuploop
+   for t=1:noofloops(s) %setuploop per ogni elemento ''t''
       [C V N2 P]=geometry19(geo.fnx(s,t),geo.ny(s,t),geo.nx(s,t),...
          geo.fsym(s,t),geo.fc(s,t),geo.flapped(s,t),geo.TW(s,t,:),geo.foil(s,t,:),...
          geo.T(s,t),geo.SW(s,t),CHORDS(s,t),geo.dihed(s,t),geo.b(s,t),...
          geo.symetric(s),SX(s,t),SY(s,t),SZ(s,t),geo.meshtype(s,t));
       
-      lattice.COLLOC=[lattice.COLLOC;C];
-      lattice.VORTEX=[lattice.VORTEX;V];
+      lattice.COLLOC=[lattice.COLLOC;C]; % collocazione delle normali
+      lattice.VORTEX=[lattice.VORTEX;V]; %collOC(x,y,z) di TUTTI vortici:2 di mezzeria(V1),2 di rilascio TEP,e hinge flap. 
       lattice.N=[lattice.N;N2];
       
-      S(s,t)=geo.b(s,t)*CHORDS(s,t)*((1+geo.T(s,t)))/2;   
+      S(s,t)=geo.b(s,t)*CHORDS(s,t)*((1+geo.T(s,t)))/2;  %superficie elemento??? 
       Cmgc(s,t)=S(s,t)/geo.b(s,t);
       
       if geo.symetric(s)==1
@@ -203,7 +206,7 @@ if isempty(ref.S_ref)
 end
 
 C_m=sum(Cmgc.*S,2);	
-ref.C_mgc=C_m(1)/ref.S_ref;		%Mean Geometric Chord  Gross surface  Main (first)
+ref.C_mgc=C_m(1)/ref.S_ref;		%Mean (media) Geometric Chord  Gross surface  Main (first)
 
 
 ref.C_mac=config('C_mac');
@@ -567,7 +570,12 @@ function [C,Vor,N,P]=...
 % Output:coordinades for collocationpoints, vorticies and%
 % 			Normals										 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+%
+%
+%
+%QUESTA FUN VIENE RICHIAMATA PER OGNI ELEMENTO!!!
+%
+%Ricorda che 'f' sta per flap!!<<<------------<<<<----------
 TEP=[];
 TEP1=[];
 TEP2=[];
@@ -578,18 +586,18 @@ INF2=[];
 ox=sx;
 oy=sy;
 oz=sz;
-neqns=(nx+fnx)*ny;
+neqns=(nx+fnx)*ny; %numero totali di pannelli dell'elemento nx*ny
 
-dx=(c*(1-fc)/nx);
+dx=(c*(1-fc)/nx); %base lungo x singolo pannello ALLA RADICE DELL'ELEMENTO IN QUESTIONE 
 if flapped==1
    fdx=(c*fc/fnx);
 else
    fdx=0;
 end   
-a1=ones(nx,1)*dx;
+a1=ones(nx,1)*dx;  %vettore colonna con 'dx' ad ogni elemento
 a2=ones(fnx,1)*fdx;
 
-dr=[a1' a2'];
+dr=[a1' a2'];   %è un vettore (riga) inutile perche senza flap a2=0
 
 
 %%%%%%%%%%%%%%%%%%%%%%%
@@ -598,16 +606,18 @@ dr=[a1' a2'];
 %%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%
-% Plotting planform
+% Plotting planform (crea una griglia sull'elemento piano)
 %%%%%%%%%%%%%%%%%%
 
+%sfruttando le origini dell'elemento determina le coordinate dei 4 spigoli (ma l'asse 'y' viene traslato
+% al quarto di corda e quindi l'origine è sul quarto di corda!!)  
 lem(1)=0.25*c;
-lem(2)=0.25*T*c;
+lem(2)=0.25*T*c; % c è la corda di radice (dell'elem) T*c è la corda al tip dello stesso
 lem(3)=-0.75*T*c;
 lem(4)=-0.75*c;
 
 DX=[(1-cos(TW(1,1,1)))*cos(SW) (1-cos(TW(1,1,2)))*cos(SW)...
-      (1-cos(TW(1,1,2)))*cos(SW) (1-cos(TW(1,1,1)))*cos(SW)].*lem;
+      (1-cos(TW(1,1,2)))*cos(SW) (1-cos(TW(1,1,1)))*cos(SW)].*lem;   %nota che è un vettore di 4
 
 DY=-[sin(TW(1,1,1))*sin(dihed)*cos(SW) sin(TW(1,1,2))*sin(dihed)*cos(SW)...
       sin(TW(1,1,2))*sin(dihed)*cos(SW) sin(TW(1,1,1))*sin(dihed)*cos(SW)].*lem;
@@ -620,7 +630,7 @@ wingy=[0 b*cos(dihed) b*cos(dihed) 0]+oy+DY;
 wingz=[0 b*sin(dihed) b*sin(dihed) 0]+oz+DZ;
 
 %%%%%%%%%%%%%%%%%
-%Plotting hinge %
+%Plotting hinge %  
 %%%%%%%%%%%%%%%%%
 if flapped==1
 	[flapx flapy flapz]=drawhinge(wingx,wingy,wingz,fc);
@@ -637,7 +647,7 @@ end
 
 if flapped==0
 	[p]=tmesh2(wingx,wingy,wingz,nx,ny,meshtype);
-	PX(:,:)=p(:,:,1);
+	PX(:,:)=p(:,:,1); %estraggo le matrici di PANEL!!!<<<<-<<<<-<---<<<-<---<
 	PY(:,:)=p(:,:,2);
 	PZ(:,:)=p(:,:,3);
 else
@@ -685,15 +695,16 @@ nx=nx+fnx;
 t=0;
 for j=0:(ny-1);
   for i=0:(nx-1);
-      t=t+1;
+      t=t+1; % t-esimo pannello
       
-      px=PX(t,:);
+      px=PX(t,:); % estrae la riga t-esima di PANEL(t,k,1) cioè quella delle ascisse scritta sul foglio
       py=PY(t,:);
       pz=PZ(t,:);
-       
+
+       % gli HP riguardano i flap.. Hinge significa cerniera!!
       if i==(nx-fnx-1) %if the panel is the rearest chordwise on wing, forward of flap. 
       	for s=0:(nx-fnx-1);          
-            HP(t-s,1,:)=[px(4) py(4) pz(4)];
+            HP(t-s,1,:)=[px(4) py(4) pz(4)]; % HINGE POINTS
             HP(t-s,2,:)=[px(3) py(3) pz(3)];         
             % TEP=Trailing edge points, Vortex points on the trailing edge            
             if sym==1
@@ -725,37 +736,45 @@ for j=0:(ny-1);
                	HP(t-u+neqns,2,:)=[px(4) -py(4) pz(4)];        
                end  
             end    
-         end
-      end
+          end
+        end % chiusura if
           
       %%%%%%%%%%%%%%%%%%%%%%%
       % Collocation point   %
       % tensor generation   %
       %%%%%%%%%%%%%%%%%%%%%%%
-      
+      %
+      %siamo ancora nel doppio ciclo for!
+      %coordinate centro dei pannelli, px contiene le ascisse 'x' dei vertici			 
       mx=sum(px(1:4))/4;		%panel midpoint x-coord
       my=sum(py(1:4))/4;
       mz=sum(pz(1:4))/4;
       
+      %punto medio delle coordinate 'x' dei verti posteriori (3 e 4)  
       bkx=(px(3)+px(4))/2;		%panel rear edge avarage x-coord
       
+       %media nelle tre direzioni tra  le coordiante del centro del pannello
+       % e le coordinate dei vertici posteriori dello steso pannello
        C1(t,1)=(mx+bkx)/2;				%SB-Collocation point x-coord.      
        C1(t,2)=(py(3)+py(4)+2*my)/4;		%SB-Collocation point y-coord.
        C1(t,3)=(pz(3)+pz(4)+2*mz)/4;		%SB-Collocation point z-coord.
+      % la simmetria va bene!(ribalta semplicemente le 'y'
       if sym==1
  	     	C2(t,1)=C1(t,1);					%P-Collpoint x-coord. 
   	   	C2(t,2)=-C1(t,2);					%P-Collpoint y-coord.
    	   C2(t,3)=C1(t,3);					%P-Collpoint z-coord.
       else
          C2=[];
-      end
-		
+      end %chiusura dell'if di simmetria 
+	
    
 
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       %Vortex tensor generation and plot % 
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      
+      %
+      %ancora nel doppio ciclo for
+      % ancora delle medie 'pesate'!!
       ax=((px(1)+px(4))/2+px(1))*0.5;	%vortex first point
       ay=(3*py(1)+py(4))/4;
       az=(3*pz(1)+pz(4))/4;
@@ -770,7 +789,7 @@ for j=0:(ny-1);
       V1(t,2,1)=bx;
       V1(t,2,2)=by;
       V1(t,2,3)=bz;
-      
+      % anche in questo caso ribalta le 'y' 
       if sym==1;
          V1(t+neqns,1,1)=bx;
       	V1(t+neqns,1,2)=-by;
@@ -782,26 +801,30 @@ for j=0:(ny-1);
       
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       % Passus to compute camber slope at % 
-      % Station							%
+      % Station--->RADICE							%
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      
+      %siamo ancora nel loop: j lungo 'y', i lungo 'x' 
+      %dr sarebbe è un vettore rica che contiene le lungezze 'dx' dei pannelli di radice
+      % questa percentuale a3 serve per determinare la pendenza (slope) media del PANNELLO
       a3=(sum(dr(1:i+1))-0.25*dr(1+i))/c; %determining percent of chord
                                          %Thanks, Domenico & Giancarlo
                                          %Tortora at University of Naples
                                          %for spotting an earlier error
                                          %here.
-      
+      %X_1_s sarebbe l'ascissa lungo la corda (chordwise) normalizzata sulla corda : x=0:0.1:1
+      % lemma invece è la pendenza della linea di inarcamento (banale per una parabola o simili)
+      %determina la pendenza della linea di inarcamento lungo il pannello t-esimo
       lemma_1_S(t)=interp1(X_1_S,lemma_1_S_tot,a3,'cubic','extrap'); %element inboard camber slope  %ADRIEN
       lemma_2_S(t)=interp1(X_2_S,lemma_2_S_tot,a3,'cubic','extrap'); %element outboard camber slope %ADRIEN
 
-      
-      S(t)=(lemma_1_S(t)*(ny-j)+lemma_2_S(t)*(j))/ny; %avarage slope for panels on
+      %pendenza media linea di inarc del PANNELLO t-esimo (media delle di quelle inboard e outboard)
+      S(t)=(lemma_1_S(t)*(ny-j)+lemma_2_S(t)*(j))/ny; %avarage slope for panels on 
       
       if sym==1
         S(t+neqns)=S(t);
       end      
      end
-end 
+end% fine del doppio ciclo for 
 
      C=[C1;C2];
      V=V1;
@@ -811,35 +834,36 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % calculating normals              %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-N=normals4(C,V,S);
+%
+%i punti C detrminano la posizione delle normali
+N=normals4(C,V,S); %questo è un potenziale problema per una superficie curva (leggi help) 
 V=Vor;
 
+%secondo nocciolo della questione, collega le coordinate, banale
 if sym==1
-   PX2(:,1)=PX(:,2);
+   PX2(:,1)=PX(:,2);% PX è PANEL(:,:,1)
    PX2(:,2)=PX(:,1);
    PX2(:,3)=PX(:,4);
    PX2(:,4)=PX(:,3);
-   PX2(:,5)=PX2(:,1);
+   PX2(:,5)=PX2(:,1); %ok
    
    PY2(:,1)=PY(:,2);
    PY2(:,2)=PY(:,1);
    PY2(:,3)=PY(:,4);
    PY2(:,4)=PY(:,3);
-   PY2(:,5)=PY2(:,1);
+   PY2(:,5)=PY2(:,1); % uguale
    
    PZ2(:,1)=PZ(:,2);
    PZ2(:,2)=PZ(:,1);
    PZ2(:,3)=PZ(:,4);
    PZ2(:,4)=PZ(:,3);
-   PZ2(:,5)=PZ2(:,1);
-   
-   
+   PZ2(:,5)=PZ2(:,1); % uguale   
+
    PX=[PX;PX2];
    PY=[PY;-PY2];
    PZ=[PZ;PZ2];   
 end
-
+%compatta tutto in una matrice 3d
 P(:,:,1)=PX;
 P(:,:,2)=PY;
 P(:,:,3)=PZ;
@@ -1258,7 +1282,7 @@ switch TYPE
    
    for i=1:101
         if xa(i)<p
-        a(i)=(2*m/(p^2)*(p-xa(i)));  
+        a(i)=(2*m/(p^2)*(p-xa(i))); % è la formula NACA, a(i) è l'ordinata della camber line all'ascissa x(i) della corda  
         else
         a(i)=2*m/((1-p)^2)*(p-xa(i));  
         end
@@ -1304,7 +1328,7 @@ switch TYPE
         Xu = A(2:L+1,1)/A(L+1,1); %% It is divided by A(L+1,1), which is the max absciss of the aifoil, in order to normalize the airfoil to a chord c=1
         Yu = A(2:L+1,2)/A(L+1,1);
 
-%% Interpolate to get all the points of the upper surface at kown X
+%% Interpolate to get all the points of the upper surface at known X
 %% coordinates that will be the same abscisses for lower and upper surfaces
         Yiu = interp1(Xu,Yu,X,'cubic','extrap');
 
@@ -1355,18 +1379,21 @@ function[panel]=tmesh2(wx,wy,wz,nx,ny,meshtype);
 % Output:Panel corner coordinates (nx5x3) Matrix			%	
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+ %'a' inboard <<<----<----<<<---<----<<<-----<<<<<<<
+ %'b' outboard<<<<---<<<<------<<<<<<---<<<<<<<<<<<
 
-   a1=[wx(1) wy(1) wz(1)];
-   b1=[wx(2) wy(2) wz(2)];
+   a1=[wx(1) wy(1) wz(1)]; %spigolo Leading edge inboard 
+   b1=[wx(2) wy(2) wz(2)]; % ''      ''        ''  outboard
    
-   b2=[wx(3) wy(3) wz(3)];
-   a2=[wx(4) wy(4) wz(4)];
+   b2=[wx(3) wy(3) wz(3)]; % ''     Trailing  ''    outboard
+   a2=[wx(4) wy(4) wz(4)]; %  '     Trailing edge inboard
    
    
    percent_cy=(0:ny)./ny;
    percent_cx=(0:nx)./nx;
    
-   
+%meshtype determina come si infittisce la griglia di pannelli ( sotto sono eplicitate 
+% le possibili combinazioni nelle direzioni 'x' y'    
    switch meshtype
        case 1
                 %Linear lattice, both in x and y
@@ -1404,16 +1431,16 @@ function[panel]=tmesh2(wx,wy,wz,nx,ny,meshtype);
    
    
    
-  
-
+%DOPPIO CICLO FOR  
+% discretizza PRIMA in direzione 'y'
 for i=1:ny+1
    perc_y=percent_cy(i);
    
      	c1=b1-a1;
-   	l1=norm(c1);
+   	l1=norm(c1);   %questa riga e la seguente le esclude negli altri casi..( due modi diversi??)
    	c1_hat=c1./l1;
    	d1=(perc_y)*l1*c1_hat;
-      m=a1+d1;
+      m=a1+d1; %è un vettore riga (x,y,z) delle coordinate del nodo i-esimo lungo 'y'  sul L.E 
       
       c2=b2-a2;
    	%l2=norm(c2);
@@ -1421,9 +1448,9 @@ for i=1:ny+1
       %d2=(perc_y)*l2*c2_hat;
       d2=(perc_y)*c2;
 
-      n=a2+d2;
+      n=a2+d2; % coordinate (x,y,z) del nodo i-esimo lungo 'y' sul T.E.
    
-   
+ %discretizza in direzione 'x' (FISSATA Y)  
    for j=1:nx+1
       
       perc_x=percent_cx(j);
@@ -1433,18 +1460,19 @@ for i=1:ny+1
   		%c3_hat=c3./l3;
       %d3=(perc_x)*l3*c3_hat;
         d3=(perc_x)*c3;
-        p=m+d3;
-  
-  		A(i,j,:)=[p];
-  
+        p=m+d3; %contiene le coordinates (x,y,z) del nodo j-esimo in direzione 'x' della corda i-esima (y) in questione 
+  		A(i,j,:)=[p]; % è una matrice a tre dimensioni ixjx3  (dove 3 sta per x y e z), sono tre matrici ixj
+                              % è la GRIGLIA.
 	end
 end
 
+
+%nocciolo della questione
 t=0;
 for i=1:ny
    for j=1:nx
       t=t+1;
-      panel(t,1,:)=A(i,j,:);
+      panel(t,1,:)=A(i,j,:); % panel è una matrice a tre dimensioni ( l'uguaglianza si applica su tutte e tre le matrici)
       panel(t,2,:)=A(i+1,j,:);
       panel(t,3,:)=A(i+1,j+1,:);
       panel(t,4,:)=A(i,j+1,:);
