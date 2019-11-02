@@ -135,6 +135,7 @@ Z=[];
 S=1;
 Cmac=0;
 CHORDS=[];
+r_football=[];      %inizializzo
 
 loopsperwing=geo.nelem;
 noofloops=loopsperwing;
@@ -142,9 +143,18 @@ temp=0;
 noofwings=size(loopsperwing');          
 
 %determino le corde e le origini degli elementi di radice
+
  
 for s=1:noofwings		%Intermediate variable setuploop(numero di colonne di geo.nelem)
+    try
+	r_football=geo.raggio;        %raggio del foro
+	ecce=geo.c(s)/2/.076-1;            %nfl football
+        semi_corda=geo.c(s)/2/sqrt(1-ecce^2)*sqrt(1-((r_football+ecce*geo.c(s)/2/(1-ecce^2))/(geo.c(s)/2/(1-ecce^2)))^2);
+        CHORDS(s,1)=semi_corda*2;
+
+    catch   	
 	CHORDS(s,1)=geo.c(s);   %calculating chords of first element
+    end
 	SX(s,1)=geo.startx(s);	%Element apex calculation
 	SY(s,1)=geo.starty(s);	% Same-o
 	SZ(s,1)=geo.startz(s);  % Same-o
@@ -174,7 +184,7 @@ for s=1:noofwings
       [C V N2 P]=geometry19(geo.fnx(s,t),geo.ny(s,t),geo.nx(s,t),...
          geo.fsym(s,t),geo.fc(s,t),geo.flapped(s,t),geo.TW(s,t,:),geo.foil(s,t,:),...
          geo.T(s,t),geo.SW(s,t),CHORDS(s,t),geo.dihed(s,t),geo.b(s,t),...
-         geo.symetric(s),SX(s,t),SY(s,t),SZ(s,t),geo.meshtype(s,t));
+         geo.symetric(s),SX(s,t),SY(s,t),SZ(s,t),geo.meshtype(s,t),r_football);
       
       lattice.COLLOC=[lattice.COLLOC;C]; % collocazione delle normali
       lattice.VORTEX=[lattice.VORTEX;V]; %collOC(x,y,z) di TUTTI vortici:2 di mezzeria(V1),2 di rilascio TEP,e hinge flap. 
@@ -551,7 +561,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [C,Vor,N,P]=...
    geometry19(fnx,ny,nx,fsym,fc,flapped,TW,foil...
-   ,T,SW,c,dihed,b,sym,sx,sy,sz,meshtype)
+   ,T,SW,c,dihed,b,sym,sx,sy,sz,meshtype,varargin)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % GEOMETRY: Essential function for TORNADO				 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -582,6 +592,11 @@ TEP2=[];
 INF=[];
 INF1=[];
 INF2=[];
+if isempty(varargin)
+   raggio=[];
+else
+  raggio=varargin{1};
+end
 
 ox=sx;
 oy=sy;
@@ -689,8 +704,8 @@ nx=nx+fnx;
 % vortex coo-rds, and collocation coo-rds		             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-[X_1_S,lemma_1_S_tot]=slope2(foil(1,1,1)); %element inboard camber slope
-[X_2_S,lemma_2_S_tot]=slope2(foil(1,1,2)); %element outboard camber slope
+[X_1_S,lemma_1_S_tot]=slope2(foil(1,1,1),c,raggio); %element inboard camber slope
+[X_2_S,lemma_2_S_tot]=slope2(foil(1,1,2),c,raggio); %element outboard camber slope
 
 t=0;
 for j=0:(ny-1);
@@ -1234,7 +1249,7 @@ end
 end %function
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
 
-function [xa,angle]=slope2(foil)
+function [xa,angle]=slope2(foil,varargin)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SLOPE: Essential function for TORNADO					 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1253,8 +1268,11 @@ function [xa,angle]=slope2(foil)
 %  Load: the airfoil data points
 
 %% Check type, file or formula...   %TM20070206
-
-if isempty(str2num((cell2mat(foil))))==0
+if strcmp(cell2mat(foil),'football')
+    TYPE=3;
+    corda=varargin{1};
+    raggio=varargin{2};
+elseif isempty(str2num((cell2mat(foil))))==0
     TYPE=1;       %Naca xxxx profile, see case 1 
 elseif isempty(str2num((cell2mat(foil))))
     TYPE=2;       %Airfoil from file, see case 2  
@@ -1282,7 +1300,7 @@ switch TYPE
    
    for i=1:101
         if xa(i)<p
-        a(i)=(2*m/(p^2)*(p-xa(i))); % è la formula NACA, a(i) è l'ordinata della camber line all'ascissa x(i) della corda  
+        a(i)=(2*m/(p^2)*(p-xa(i))); % è la formula NACA, a(i) è la derivata dell'ordinata della camber line all'ascissa x(i) della corda  
         else
         a(i)=2*m/((1-p)^2)*(p-xa(i));  
         end
@@ -1346,7 +1364,24 @@ switch TYPE
             xa(i)=1/2*(X(i)+X(i+1));
             angle(i)=atan( (C(i+1)-C(i)) / (X(i+1)-X(i)) );
         end
-end
+
+ %Football Type 
+    case 3
+	ypsi=linspace(-corda/2,corda/2,200);  % sarebbe la "x" 
+	semi=0.1345;
+	ecce=semi/.076-1;  
+        asci=semi/(1-ecce^2)*sqrt(1-(ypsi/(semi/sqrt(1-ecce^2))).^2)-ecce*semi/(1-ecce^2);  %ellisse, riferimento centrato sul fuoco
+        xa=linspace(0,1,200);     %xa  è la ypsilon (nel nostro caso) normalizzata
+	%Mean camber line
+	%camber=-(asci+raggio)/2;  % ribaltata
+	%pendenza:rapporto incrementale
+	%for i=1:2000
+	%   a(i)=(camber(i+1)-camber(i))/(ypsi(101)-ypsi(100));
+	%end	    
+	a=-(semi/(1-ecce^2)*(1-(ypsi/(semi/sqrt(1-ecce^2))).^2).^-5*-((1-ecce^2)/semi^2)*2.*ypsi)/2; % derivata di asci/2
+	angle=atan(a); %pendenza di camber (la metà di quella dell'ellisse esterna)
+    end
+
 end %Function
 
 
@@ -1354,7 +1389,7 @@ end %Function
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function[panel]=tmesh2(wx,wy,wz,nx,ny,meshtype);
+function[panel]=tmesh2(wx,wy,wz,nx,ny,meshtype)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TMESH: Essential function for TORNADO						%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

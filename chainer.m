@@ -2,11 +2,11 @@ function[]=chainer(n,r)
 % function[]=chainer(n,r)
 %INPUT
 %n= numero di lati (deve essere pari e maggiore di 2)
-%r= raggio circonferanza in metri (nfl r=0.076)
+%r= raggio del foro in metri (max 0.07)
 %se non viene dato ny=2 (default):
 
-if rem(n,2)~=0 || n<=2 || r<=0
-    error('lati n>2 pari, raggio  r>0')
+if rem(n,2)~=0 || n<=2 || r<=0.05 || r>=0.076
+    error('lati n>2 pari, raggio  0.05<r<0.07   r_tot=0.076')
 end
 
 cd aircraft
@@ -21,18 +21,20 @@ end
 
 nelem=n/2;
 teta=2*pi/n;
-l=2*r*sin(pi/n);
+l=2*r*sin(pi/n);  % 
 
 geo.flapped=zeros(1,nelem);
 geo.nelem=nelem;
-geo.nx=ones(1,nelem)*20;
-geo.ny=ones(1,nelem)*ny;
-geo.b=ones(1,nelem)*l;
+%geo.c=ones(1,nwing)*c
+geo.nx=ones(1,nelem)*6;  % pannelli chorwise
+geo.ny=ones(1,nelem)*ny;  % pannelli apertura
+geo.b=ones(1,nelem)*l;    % apertura elemento
+geo.raggio=r;
 
 teta_0=pi/2-(pi-teta)/2;
 for i=1:nelem
     
-    geo.foil(1,i,:)={'naca4412.DAT'};
+    geo.foil(1,i,:)={'football'};
     geo.TW(1,i,:)=0;
     geo.dihed(1,i)=teta_0;
     geo.T(1,i)=1;
