@@ -26,13 +26,30 @@ l=2*r*sin(pi/n);  %
 geo.flapped=zeros(1,nelem);
 geo.nelem=nelem;
 %geo.c=ones(1,nwing)*c
-geo.nx=ones(1,nelem)*6;  % pannelli chorwise
-geo.ny=ones(1,nelem)*ny;  % pannelli apertura
-geo.b=ones(1,nelem)*l;    % apertura elemento
+geo.nx=ones(1,nelem)*6;  % 6 pannelli chordwise
+geo.ny=ones(1,nelem)*ny;  % ny pannelli apertura
+geo.b =ones(1,nelem)*l;    % apertura elementi 
 geo.raggio=r;
 
+disp(['nelem = ',num2str(nelem)])
+
+geo.foil        = cell (1,nelem,2);%(1,:,:)     = []; 
+geo.TW          = zeros(1,nelem,2);%(1,:,:)     = [];
+geo.dihed       = zeros(1,nelem)  ;%(1,:)       = [];
+geo.T           = zeros(1,nelem)  ;%(1,:)           = [];
+geo.SW          = zeros(1,nelem)  ;%(1,:)          = [];
+geo.meshtype    = zeros(1,nelem)  ;%(1,:)    = [];
+
+geo.fc          = zeros(1,nelem)  ;%(1,:)          = [];
+geo.fnx         = zeros(1,nelem)  ;%(1,:)         = [];
+geo.fsym        = zeros(1,nelem)  ;%(1,:)        = [];
+geo.flap_vector = zeros(1,nelem)  ;%(1,:) = [];
+
 teta_0=pi/2-(pi-teta)/2;
+
 for i=1:nelem
+
+    disp(['nelem = ',num2str(nelem)])
     
     geo.foil(1,i,:)={'football'};
     geo.TW(1,i,:)=0;

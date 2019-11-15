@@ -184,7 +184,7 @@ for s=1:noofwings
       [C V N2 P]=geometry19(geo.fnx(s,t),geo.ny(s,t),geo.nx(s,t),...
          geo.fsym(s,t),geo.fc(s,t),geo.flapped(s,t),geo.TW(s,t,:),geo.foil(s,t,:),...
          geo.T(s,t),geo.SW(s,t),CHORDS(s,t),geo.dihed(s,t),geo.b(s,t),...
-         geo.symetric(s),SX(s,t),SY(s,t),SZ(s,t),geo.meshtype(s,t),r_football);
+         geo.symetric(s),SX(s,t),SY(s,t),SZ(s,t),geo.meshtype(s,t),r_football,t);
       
       lattice.COLLOC=[lattice.COLLOC;C]; % collocazione delle normali
       lattice.VORTEX=[lattice.VORTEX;V]; %collOC(x,y,z) di TUTTI vortici:2 di mezzeria(V1),2 di rilascio TEP,e hinge flap. 
@@ -594,8 +594,10 @@ INF1=[];
 INF2=[];
 if isempty(varargin)
    raggio=[];
+   ti=[];
 else
-  raggio=varargin{1};
+   raggio=varargin{1};
+   ti=varargin{2};
 end
 
 ox=sx;
@@ -704,8 +706,8 @@ nx=nx+fnx;
 % vortex coo-rds, and collocation coo-rds		             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-[X_1_S,lemma_1_S_tot]=slope2(foil(1,1,1),c,raggio); %element inboard camber slope
-[X_2_S,lemma_2_S_tot]=slope2(foil(1,1,2),c,raggio); %element outboard camber slope
+[X_1_S,lemma_1_S_tot]=slope2(foil(1,1,1),c,raggio,ti); %element inboard camber slope
+[X_2_S,lemma_2_S_tot]=slope2(foil(1,1,2),c,raggio,ti); %element outboard camber slope
 
 t=0;
 for j=0:(ny-1);
@@ -1268,14 +1270,15 @@ function [xa,angle]=slope2(foil,varargin)
 %  Load: the airfoil data points
 
 %% Check type, file or formula...   %TM20070206
-if strcmp(cell2mat(foil),'football')
+if length(str2num((cell2mat(foil))))==4
+   TYPE=1;       %Naca xxxx profile, see case 1 
+elseif strcmp(cell2mat(foil),'football')==0
+    TYPE=2;       %Airfoil from file, see case 2
+elseif strcmp(cell2mat(foil),'football')
     TYPE=3;
     corda=varargin{1};
     raggio=varargin{2};
-elseif isempty(str2num((cell2mat(foil))))==0
-    TYPE=1;       %Naca xxxx profile, see case 1 
-elseif isempty(str2num((cell2mat(foil))))
-    TYPE=2;       %Airfoil from file, see case 2  
+    ti=varargin{3};  
 else
     disp('Foil error, flatplate assumed')
     xa=[0 0 0];
@@ -1367,11 +1370,11 @@ switch TYPE
 
  %Football Type 
     case 3
-	ypsi=linspace(-corda/2,corda/2,200);  % sarebbe la "x" 
-	semi=0.1345;
-	ecce=semi/.076-1;  
+	ypsi=linspace(-corda/2,corda/2,1000);  % sarebbe la "x" 
+	semi=0.1345;   %semiasse maggiore nfl
+	ecce=semi/.076-1;  %eccentricità nfl
         asci=semi/(1-ecce^2)*sqrt(1-(ypsi/(semi/sqrt(1-ecce^2))).^2)-ecce*semi/(1-ecce^2);  %ellisse, riferimento centrato sul fuoco
-        xa=linspace(0,1,200);     %xa  è la ypsilon (nel nostro caso) normalizzata
+        xa=linspace(0,1,1000);     %xa  è la ypsilon (nel nostro caso) normalizzata
 	%Mean camber line
 	%camber=-(asci+raggio)/2;  % ribaltata
 	%pendenza:rapporto incrementale
@@ -1380,6 +1383,49 @@ switch TYPE
 	%end	    
 	a=-(semi/(1-ecce^2)*(1-(ypsi/(semi/sqrt(1-ecce^2))).^2).^-5*-((1-ecce^2)/semi^2)*2.*ypsi)/2; % derivata di asci/2
 	angle=atan(a); %pendenza di camber (la metà di quella dell'ellisse esterna)
+%%%%	if ti==1
+%%%%	   dfi=2*pi/(1000-1); 
+%%%%	   fi=0;
+%%%%	   Xe=[];
+%%%%	   Ze=[];
+%%%%	   Ye=[];
+%%%%	   Xi=[];
+%%%%	   Zi=[];
+%%%%	   figure(696)
+%%%%	   for j=1:1000
+%%%%	       fi=0;
+%%%%	       for i=1:1000
+%%%%	           ze(i)=asci(j)*sin(fi);  % external surface (ellipse)
+%%%%	           xe(i)=asci(j)*cos(fi);
+%%%%		   zi(i)=raggio*sin(fi);   % internal surface (cylinder)
+%%%%		   xi(i)=raggio*cos(fi);
+%%%%	           fi=fi+dfi;
+%%%%	           
+%%%%	       end
+%%%%	       ye=ones(1,1000)*ypsi(j);
+%%%%	       Xe=[Xe; xe'];
+%%%%	       Ze=[Ze; ze'];
+%%%%	       Ye=[Ye; ye'];
+%%%%	       Xi=[Xi; xi'];
+%%%%	       Zi=[Zi; zi'];	   
+%%%%	   end
+%%%%	   plot3(Xe,Ye,Ze,'b',Xi,Ye,Zi,'g')
+%%%%	   %x=linspace(-0.076,0.076,200);
+%%%%	   %z=linspace(-0.076,0.076,200);
+%%%%	   %[X Z]=meshgrid(x,z);
+%%%%	   %f=@(x,z)[sqrt(abs(semi^2*(1-(x.^2+z.^2)/0.076^2)))];
+%%%%	   %figure(696)
+%%%%	   %hold on
+%%%%	   %surf(X,Z,Y);
+%%%%	   xlabel('x');
+%%%%           ylabel('y');
+%%%%	   zlabel('z');
+%%%%	   axis 'equal';
+%%%%	   title('REAL GEOMETRY');
+%%%%	   rotate3d on
+%%%%	   view(155,10)
+%%%%	   hold off
+%%%%	end    	   
     end
 
 end %Function
