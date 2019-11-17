@@ -52,10 +52,10 @@ end
 cd aircraft
 load CHAINWING
 
-%ny=input('number of panels per partition (lato), ny= ');
-ny=1;
+ny=input('number of panels per partition (lato), ny= ');
+
 if isempty(ny) || ny==0
-    ny = 1;
+    ny = 2;
 else
     ny = abs(round(ny));
 end
@@ -68,7 +68,7 @@ l = 2*r*sin(pi/n);  % partition span (length chain element)
 
 geo.flapped = zeros(1,nelem)  ;
 geo.nelem   = nelem           ;
-geo.nx      = ones(1,nelem)*32;  % panels chordwise matrix
+geo.nx      = ones(1,nelem)*56;  % panels chordwise matrix
 geo.ny      = ones(1,nelem)*ny;  % panels partition spanwise matrix
 geo.b       = ones(1,nelem)*l ;  % partition span matrix 
 geo.raggio  = r               ;  % hole radius
@@ -101,7 +101,6 @@ for i = 1:nelem
 
     
     geo.foil       (1,i,:) = {'football'};
-    geo.foil	   (2,i,:) = {'0000'}	 ;
     geo.TW         (1,i,:) = 0           ;
     geo.dihed      (1,i)   = teta_0 	 ;
     geo.T          (1,i)   = 1     	 ;

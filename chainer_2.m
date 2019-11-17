@@ -1,21 +1,21 @@
 function[]=chainer(n,r,varargin)
-% function[]=chainer(n,r)
+% function[]=chainer(n,r,'option')
 %INPUT
-%n= numero di lati (deve essere pari e maggiore di 2)
-%r= raggio del foro in metri
-%se non viene dato ny=2 (default):
-%OPTION
+%n = number of sides (even and n>2)
+%r = hole radius [m]
+%ny=1 (default):
+%OPTION:
 % 'r' : bigger radius = 0.096 [m]
 % 'l' : bigger length = 0.300 [m]
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %da cencellare:RAM
-if n>16
-   error('n_max=16')
+if n>32
+   error('n_max=32')
 end
 
 
-c = 0.269;   % nfl football length (twice semilatus rectus)
+c = 0.269;   % nfl football length (twice semilatus rectum)
 p = 0.076;   % nfl football radius (periapse)
 AR=[];
 
@@ -25,16 +25,16 @@ if ~isempty(varargin)
 
     if strcmp(AR,'r')
 
-        if rem(n,2)~=0 || n<=2 || r<=0.05 || r>=0.09
-           error('lati n>2 even, raggio  0.05<r<0.09   r_tot=0.096')
+        if rem(n,2)~=0 || n<=2 || r>=0.09
+           error('sides n>2 even, radius r<0.09,   r_tot=0.096')
         end
 
         p = 0.096;  
        
     elseif strcmp(AR,'l')
       
-        if rem(n,2)~=0 || n<=2 || r<=0.05 || r>=0.07
-           error('lati n>2 even, raggio  0.05<r<0.07   r_tot=0.076')
+        if rem(n,2)~=0 || n<=2  || r>=0.07
+           error('sides n>2 even, radius r<0.07,   r_tot=0.076')
         end
        
         c = 0.300;
@@ -43,8 +43,8 @@ if ~isempty(varargin)
     end
 
 else
-    if rem(n,2)~=0 || n<=2 || r<=0.05 || r>=0.07
-       error('lati n>2 even, raggio  0.05<r<0.07   r_tot=0.076')
+    if rem(n,2)~=0 || n<=2 || r>=0.07
+       error('sides n>2 even, radius  r<0.07,   r_tot=0.076')
     end
 
 end
@@ -53,7 +53,7 @@ cd aircraft
 load CHAINWING
 
 %ny=input('number of panels per partition (lato), ny= ');
-ny=1;
+ny=1; %not implemented
 if isempty(ny) || ny==0
     ny = 1;
 else
