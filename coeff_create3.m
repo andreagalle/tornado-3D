@@ -213,7 +213,7 @@ dCn=(Cn-Cn(:,1))./delta;
    end
 
 %return   
-[results]=spanload6(results,geo,lattice,state);
+%[results]=spanload6(results,geo,lattice,state);
 
 %[lemma]=fStripforce(geo,results,lattice,state,ref,vCfraction)
 

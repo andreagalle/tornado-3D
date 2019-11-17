@@ -184,9 +184,9 @@ end
 for s=1:noofwings
    for t=1:noofloops(s) %setuploop per ogni elemento ''t''
       [C V N2 P]=geometry19(geo.fnx(s,t),geo.ny(s,t),geo.nx(s,t),...
-         geo.fsym(s,t),geo.fc(s,t),geo.flapped(s,t),geo.TW(s,t,:),geo.foil(s,t,:),...
+         geo.fsym(s,t),geo.fc(s,t),geo.flapped(s,t),geo.TW(s,t,:),geo.foil(2,t,:),...
          geo.T(s,t),geo.SW(s,t),CHORDS(s,t),geo.dihed(s,t),geo.b(s,t),...
-         geo.symetric(s),SX(s,t),SY(s,t),SZ(s,t),geo.meshtype(s,t),r_football,t,semilatus,periapse);
+         geo.symetric(s),SX(s,t),SY(s,t),SZ(s,t),geo.meshtype(s,t));
       
       lattice.COLLOC=[lattice.COLLOC;C]; % collocazione delle normali
       lattice.VORTEX=[lattice.VORTEX;V]; %collOC(x,y,z) di TUTTI vortici:2 di mezzeria(V1),2 di rilascio TEP,e hinge flap. 
@@ -233,6 +233,25 @@ if isempty(ref.mac_pos)
        SX(1,:),SY(1,:),SZ(1,:),geo.dihed(1,:),geo.symetric(1)); %Main (first) wing Mean aerodymaic chord calculation   
    %mac_pos=-mac_pos
 end
+
+%%%%%%%%%
+%% NEW %% External surface
+%%%%%%%%%
+s   = 1; 
+bit = 1; 
+
+   for t=1:noofloops(s) %setuploop per ogni elemento ''t''
+      [C V N2 P]=geometry19(geo.fnx(s,t),geo.ny(s,t),geo.nx(s,t),...
+         geo.fsym(s,t),geo.fc(s,t),geo.flapped(s,t),geo.TW(s,t,:),geo.foil(s,t,:),...
+         geo.T(s,t),geo.SW(s,t),CHORDS(s,t),geo.dihed(s,t),geo.b(s,t),...
+         geo.symetric(s),SX(s,t),SY(s,t),SZ(s,t),geo.meshtype(s,t),r_football,t,semilatus,periapse,bit,geo.nelem);
+      
+       lattice.COLLOC = [lattice.COLLOC;C]; % collocazione delle normali
+       lattice.VORTEX = [lattice.VORTEX;V]; %collOC(x,y,z) di TUTTI vortici:2 di mezzeria(V1),2 di rilascio TEP,e hinge flap. 
+       lattice.N      = [lattice.N;N2]    ;
+       lattice.XYZ    = [lattice.XYZ;P]   ;
+   end
+%%%%%%%%%
  
 lock(1)=0;	%Unlock geometry loaded bit
 end
@@ -599,11 +618,15 @@ if isempty(varargin)
    ti         = [];
    semirectus = [];
    peri       = [];
+   bit        = [];
+   nelem      = [];
 else
    raggio     = varargin{1};
    ti         = varargin{2};
    semirectus = varargin{3};
    peri	      = varargin{4};
+   bit        = varargin{5};
+   nelem      = varargin{6};
 end
 
 ox=sx;
@@ -669,10 +692,20 @@ end
 %axis equal
 
 if flapped==0
-	[p]=tmesh2(wingx,wingy,wingz,nx,ny,meshtype);
-	PX(:,:)=p(:,:,1); %estraggo le matrici di PANEL!!!<<<<-<<<<-<---<<<-<---<
-	PY(:,:)=p(:,:,2);
-	PZ(:,:)=p(:,:,3);
+
+	if isempty(bit)
+
+  	    [p]=tmesh2(wingx,wingy,wingz,nx,ny,meshtype);
+	    PX(:,:)=p(:,:,1); %estraggo le matrici di PANEL!!!<<<<-<<<<-<---<<<-<---<
+	    PY(:,:)=p(:,:,2);
+	    PZ(:,:)=p(:,:,3);
+	else
+	    [p]=tmesh696(c,raggio,ti,semirectus,peri,nx,ny,nelem);
+	    PX(:,:)=p(:,:,1); %estraggo le matrici di PANEL!!!<<<<-<<<<-<---<<<-<---<
+	    PY(:,:)=p(:,:,2);
+	    PZ(:,:)=p(:,:,3);
+	end
+	
 else
    tempx=wingx(3:4);
    tempy=wingy(3:4);
@@ -859,7 +892,7 @@ end% fine del doppio ciclo for
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %i punti C detrminano la posizione delle normali
-N=normals4(C,V,S); %questo è un potenziale problema per una superficie curva (leggi help) 
+N=normals4(C,V,S,bit); %questo è un potenziale problema per una superficie curva (leggi help) 
 V=Vor;
 
 %secondo nocciolo della questione, collega le coordinate, banale
@@ -895,7 +928,7 @@ end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [normal]=normals4(colloc,vortex,C_Slope)
+function [normal]=normals4(colloc,vortex,C_Slope,varargin)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % NORMALS: Essential function for TORNADO						
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -914,6 +947,13 @@ function [normal]=normals4(colloc,vortex,C_Slope)
 % Calls:			trot												
 %					MATLAB 5.2 std fcns							
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+if isempty(varargin)
+   bit = [];
+else
+   bit = varargin{1};
+end
+
 N=[];
 step=size(colloc);
 [d e f]=size(vortex);
@@ -932,7 +972,13 @@ for t=1:step	%Looping through panels
         r0(1)=0;                    %fix to get normals to not point the right way
       	r1=rc-ra;
       	r2=rc-rb;
-   		n=cross(r1,r2);				%Passus to determine normal
+
+	     if bit==1
+   		n = cross(r1,r2) ;		%Passus to determine normal
+	     else
+		n = -cross(r1,r2); %ATTENZIONE il verso originale era  positivo!(bit si riferisce alla superficie curva)   		
+	     end
+
       	nl=sqrt(sum((n.^2),2));    %of panel at collocationpoint.
     		R=n/nl;							%Normalizing normal.
          R2=trot3(r0,R,-alpha);		%rotating wha trot
@@ -1276,7 +1322,7 @@ function [xa,angle]=slope2(foil,varargin)
 %  Load: the airfoil data points
 
 %% Check type, file or formula...   %TM20070206
-if length(str2num((cell2mat(foil))))==4
+if length(cell2mat(foil))==4
    TYPE=1;       %Naca xxxx profile, see case 1 
 elseif strcmp(cell2mat(foil),'football')==0
     TYPE=2;       %Airfoil from file, see case 2
@@ -1378,10 +1424,10 @@ switch TYPE
 
  %Football Type 
     case 3
-	ypsi = linspace(-corda/2,corda/2,1000);  % sarebbe la "x" 
+	ypsi = linspace(-corda/2,corda/2,100);  % sarebbe la "x" 
 	ecce = semi/peri-1;                      % eccentricità 
         asci = semi/(1-ecce^2)*sqrt(1-(ypsi/(semi/sqrt(1-ecce^2))).^2)-ecce*semi/(1-ecce^2);  %ellisse, riferimento centrato sul fuoco
-        xa   = linspace(0,1,1000);     %xa  è la ypsilon (nel nostro caso) normalizzata
+        xa   = linspace(0,1,100);     %xa  è la ypsilon (nel nostro caso) normalizzata
 	%Mean camber line
 	%camber=-(asci+raggio)/2;  % ribaltata
 	%pendenza:rapporto incrementale
@@ -1570,6 +1616,102 @@ end
 warning('on')
 end%function
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function[panel]=tmesh696(corda,raggio,ti,semirectus,peri,nx,ny,nelem)
+%viene richiamata per ogni partizione. Una partizione è rappresenta da una
+%slice del guscio lunga tutta corda
+ 
+r     = raggio     ; % raggio del foro
+c     = corda      ; % lunghezza del foro
+semi  = semirectus ; % semilato retto football
+peri  = peri       ; % pericentro football
+nx    = nx	   ; % 
+ny    = ny	   ; %
+t     = ti	   ; % partizione t-esima
+nelem = nelem      ; % partizioni di tutto L.E. e T.E. (l'altra metà simmetria)
+                 
+
+x    = linspace(-corda/2,corda/2,nx+1);    % è la 'x' 
+ecce = semi/peri-1;                      % eccentricità 
+asci = semi/(1-ecce^2)*sqrt(1-(x/(semi/sqrt(1-ecce^2))).^2)-ecce*semi/(1-ecce^2);  %ellisse, riferimento centrato sul fuoco
+
+%calcolo i vertici dei pannelli, riferimento centro sul fuoco
+
+dfi=pi/(nelem);  % /nelem*ny 
+	   
+Xe = []                ;   
+Ze = []                ;   
+Ye = []                ;   
+fi = -pi/2+(t-1)*ny*dfi;
+
+for j = 1:ny+1    % ny+nelem+1
+	       
+			       
+    for i = 1:nx+1
+        ze(i)=asci(i)*sin(fi);  % external surface (ellipse)
+        ye(i)=asci(i)*cos(fi);
+    end
+               
+    fi = fi+dfi         ; 
+    xe = ones(1,nx+1).*x;  % è giusto???superfluo
+    Xe = [Xe; xe]       ;  % matrice (ny+1)x(nx+1)
+    Ye = [Ye; ye]       ;
+    Ze = [Ze; ze]       ;
+
+end
+
+%Traslo coordinate: origine standard (L.E.  radice)  
+Xe = Xe+c/2   ;
+Ye = Ye       ;
+Ze = Ze+raggio;
+
+A(:,:,1) = Xe;
+A(:,:,2) = Ye;
+A(:,:,3) = Ze;
+
+
+h=0;
+for i = 1:ny
+
+    for j = 1:nx
+    
+        h=h+1                      ; 
+        panel(h,1,:) = A(i,j,:)    ;
+        panel(h,2,:) = A(i+1,j,:)  ;
+        panel(h,3,:) = A(i+1,j+1,:);
+        panel(h,4,:) = A(i,j+1,:)  ;
+        panel(h,5,:) = A(i,j,:)    ;
+                         
+    end
+
+end
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

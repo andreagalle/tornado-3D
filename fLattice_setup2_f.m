@@ -184,9 +184,9 @@ end
 for s=1:noofwings
    for t=1:noofloops(s) %setuploop per ogni elemento ''t''
       [C V N2 P]=geometry19(geo.fnx(s,t),geo.ny(s,t),geo.nx(s,t),...
-         geo.fsym(s,t),geo.fc(s,t),geo.flapped(s,t),geo.TW(s,t,:),geo.foil(s,t,:),...
+         geo.fsym(s,t),geo.fc(s,t),geo.flapped(s,t),geo.TW(s,t,:),geo.foil(2,t,:),...
          geo.T(s,t),geo.SW(s,t),CHORDS(s,t),geo.dihed(s,t),geo.b(s,t),...
-         geo.symetric(s),SX(s,t),SY(s,t),SZ(s,t),geo.meshtype(s,t),r_football,t,semilatus,periapse);
+         geo.symetric(s),SX(s,t),SY(s,t),SZ(s,t),geo.meshtype(s,t));
       
       lattice.COLLOC=[lattice.COLLOC;C]; % collocazione delle normali
       lattice.VORTEX=[lattice.VORTEX;V]; %collOC(x,y,z) di TUTTI vortici:2 di mezzeria(V1),2 di rilascio TEP,e hinge flap. 
@@ -233,6 +233,26 @@ if isempty(ref.mac_pos)
        SX(1,:),SY(1,:),SZ(1,:),geo.dihed(1,:),geo.symetric(1)); %Main (first) wing Mean aerodymaic chord calculation   
    %mac_pos=-mac_pos
 end
+
+%%%%%%%%%
+%% NEW %% External surface
+%%%%%%%%%
+s   = 1; 
+bit = 1; 
+
+   for t=1:noofloops(s) %setuploop per ogni elemento ''t''
+      [C V N2 P]=geometry19(geo.fnx(s,t),geo.ny(s,t),geo.nx(s,t),...
+         geo.fsym(s,t),geo.fc(s,t),geo.flapped(s,t),geo.TW(s,t,:),geo.foil(s,t,:),...
+         geo.T(s,t),geo.SW(s,t),CHORDS(s,t),geo.dihed(s,t),geo.b(s,t),...
+         geo.symetric(s),SX(s,t),SY(s,t),SZ(s,t),geo.meshtype(s,t),r_football,t,semilatus,periapse,bit);
+      
+      lattice.COLLOC=[lattice.COLLOC;C]; % collocazione delle normali
+      lattice.VORTEX=[lattice.VORTEX;V]; %collOC(x,y,z) di TUTTI vortici:2 di mezzeria(V1),2 di rilascio TEP,e hinge flap. 
+      lattice.N=[lattice.N;N2];
+
+      lattice.XYZ=[lattice.XYZ;P];
+   end
+
  
 lock(1)=0;	%Unlock geometry loaded bit
 end
@@ -599,11 +619,13 @@ if isempty(varargin)
    ti         = [];
    semirectus = [];
    peri       = [];
+   bit        = [];
 else
    raggio     = varargin{1};
    ti         = varargin{2};
    semirectus = varargin{3};
    peri	      = varargin{4};
+   bit        = varargin{5};
 end
 
 ox=sx;
@@ -669,10 +691,20 @@ end
 %axis equal
 
 if flapped==0
-	[p]=tmesh2(wingx,wingy,wingz,nx,ny,meshtype);
-	PX(:,:)=p(:,:,1); %estraggo le matrici di PANEL!!!<<<<-<<<<-<---<<<-<---<
-	PY(:,:)=p(:,:,2);
-	PZ(:,:)=p(:,:,3);
+
+	if isempty(bit)
+
+  	    [p]=tmesh2(wingx,wingy,wingz,nx,ny,meshtype);
+	    PX(:,:)=p(:,:,1); %estraggo le matrici di PANEL!!!<<<<-<<<<-<---<<<-<---<
+	    PY(:,:)=p(:,:,2);
+	    PZ(:,:)=p(:,:,3);
+	else
+	    [p]=tmesh696(c,raggio,ti,semirectus,peri,nx,ny);
+	    PX(:,:)=p(:,:,1); %estraggo le matrici di PANEL!!!<<<<-<<<<-<---<<<-<---<
+	    PY(:,:)=p(:,:,2);
+	    PZ(:,:)=p(:,:,3);
+	end
+	
 else
    tempx=wingx(3:4);
    tempy=wingy(3:4);
@@ -859,7 +891,7 @@ end% fine del doppio ciclo for
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %i punti C detrminano la posizione delle normali
-N=normals4(C,V,S); %questo è un potenziale problema per una superficie curva (leggi help) 
+N=normals4(C,V,S,bit); %questo è un potenziale problema per una superficie curva (leggi help) 
 V=Vor;
 
 %secondo nocciolo della questione, collega le coordinate, banale
@@ -895,7 +927,7 @@ end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [normal]=normals4(colloc,vortex,C_Slope)
+function [normal]=normals4(colloc,vortex,C_Slope,varargin)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % NORMALS: Essential function for TORNADO						
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -914,6 +946,13 @@ function [normal]=normals4(colloc,vortex,C_Slope)
 % Calls:			trot												
 %					MATLAB 5.2 std fcns							
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+if isempty(varargin)
+   bit = [];
+else
+   bit = varargin{1};
+end
+
 N=[];
 step=size(colloc);
 [d e f]=size(vortex);
@@ -932,7 +971,13 @@ for t=1:step	%Looping through panels
         r0(1)=0;                    %fix to get normals to not point the right way
       	r1=rc-ra;
       	r2=rc-rb;
-   		n=cross(r1,r2);				%Passus to determine normal
+
+	     if bit==1
+   		n = cross(r1,r2) ;		%Passus to determine normal
+	     else
+		n = -cross(r1,r2); %ATTENZIONE il verso originale era  positivo!(bit si riferisce alla superficie curva)   		
+	     end
+
       	nl=sqrt(sum((n.^2),2));    %of panel at collocationpoint.
     		R=n/nl;							%Normalizing normal.
          R2=trot3(r0,R,-alpha);		%rotating wha trot
@@ -1570,9 +1615,9 @@ end
 warning('on')
 end%function
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
+function[panel]=tmesh696(corda,raggio,ti,semirectus,peri,nx,ny)
+ 
+r = raggio
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
