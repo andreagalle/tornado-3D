@@ -205,7 +205,7 @@ if r_football ~=0
            lattice.XYZ=[lattice.XYZ;P];
        end
      end
-     
+    % config restituisce un vettore vuoto (che può essere riempito a priori) 
      ref.b_ref=config('b_ref');
      if isempty(ref.b_ref)
         B=sum(geo.b,2);

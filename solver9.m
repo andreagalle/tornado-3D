@@ -42,14 +42,19 @@ function [results]=solver(results,state,geo,lattice,ref)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %disp('Running solver 8')
 [a vor_length void]=size(lattice.VORTEX);%extracting number of sections in 
-										   %"horseshoes"
+	 									   %"horseshoes"
+%a= num di pannelli
+%vor_length = [wake TEP HP V HP TEP wake]= [1 1 1 2 1 1 1 ] colonne
+% void =3
+
     %if vor_length < 8
     %   terror(1)
     %   return
     %end
     
 %flops(0)    
-[w2 void]=fastdw(lattice);
+[w2 void]=fastdw(lattice); % w2 è una matrice quadrata di scalari, void è trdimensionale
+			   % w2 è la proiezione di void sulle rispettive normali
 
 results.dwcond=cond(w2);
 %disp('dnwash... ok')
@@ -63,12 +68,16 @@ rhs=(setboundary5(lattice,state,geo))';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Solving for rhs           %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%	
-
-gamma=w2\rhs';
+% determina intensità vortice di ogni pannello
+gamma=w2\rhs';   % risolve il sistema x=A\B
 %disp('gauss... ok')
 
+% righe di gamma= (nx*ny)*2 per simmetria (la parte simmetrica ha segno opposto),
+% cioè le righe sono pari al numero di CONTROLLPOINT
+% colonne di gamma sono pari al numero di vortici (pannelli) CHORDWISE 
+%nota: le righe sono uguali (con questa geometria)
 
-
+% w2 =(nx*ny)*2 * (nx*ny)*2   quadrata 
 
     if state.pgcorr==1
         %tdisp('Trying PG correction')
@@ -86,12 +95,12 @@ gamma=w2\rhs';
 
 
 b1=vor_length/2;
-
+%estrae vortice 'a' e 'b' di ogni pannello
 p1(:,:)=lattice.VORTEX(:,b1,:);		%Calculating panel vortex midpoint	
 p2(:,:)=lattice.VORTEX(:,b1+1,:);	%to use as a force locus
-lattice.COLLOC(:,:)=(p1+p2)./2;	    % LOCAL control point, vortex midpoint.
+lattice.COLLOC(:,:)=(p1+p2)./2;	    % LOCAL control point, vortex midpoint (usato e dimostrato il perchè)
 
-c3=lattice.COLLOC-ones(size(lattice.COLLOC,1),1)*geo.ref_point;
+c3=lattice.COLLOC-ones(size(lattice.COLLOC,1),1)*geo.ref_point; % ref_point è nullo
 
 [w3 DW]=fastdw(lattice);	                    %Calculating downwash on vorticies
 w4=sum(DW,2);					                %superpositioning aerodynamic influence
@@ -109,7 +118,7 @@ le=(p2-p1);					%Vortex span vector
 %	lehat(s,:)=le(s,:)./Lle(s);	%
 %end 
 
-
+% 'le' è il vettore che rappresenta il filamento vorticoso al quarto di corda del generico pannello 
 Lle=sqrt(sum(le.^2,2));
 lehat(:,1)=le(:,1)./Lle;
 lehat(:,2)=le(:,2)./Lle;
@@ -121,8 +130,8 @@ for j=1:nofderiv
     IW(:,j,2)=DWY*gamma(:,j);
     IW(:,j,3)=DWZ*gamma(:,j);
     
-    G(:,1)=gamma(:,j).*lehat(:,1);	%Aligning vorticity along panel vortex
-    G(:,2)=gamma(:,j).*lehat(:,2);
+    G(:,1)=gamma(:,j).*lehat(:,1);	% Aligning vorticity along panel vortex
+    G(:,2)=gamma(:,j).*lehat(:,2);	% gamma*l=GAMMA (per calcolare la forza)
     G(:,3)=gamma(:,j).*lehat(:,3);
 
     wind1=state.AS*([cos(state.alpha)*cos(state.betha) -cos(state.alpha)*sin(state.betha) sin(state.alpha)]); %Aligning with wind
@@ -133,7 +142,7 @@ for j=1:nofderiv
     end                                   %^^^^^^^---new stuff in T131         %Thanks Luca for pointing out the error here
 
     Wind=Wind+Rot;								%Adding rotations
-    Fprim(:,j,:)=state.rho*cross(Wind,G);			    %Force per unit length
+    Fprim(:,j,:)=state.rho*cross(Wind,G);   %Force per unit length (per span unit) Kutta-Jukowsky (invertita per il segno)
     
     
         F(:,j,1)=Fprim(:,j,1).*Lle;				%Force per panel
@@ -146,7 +155,8 @@ for j=1:nofderiv
     C3(:,:,3)=c3(:,3)*ones(1,nofderiv); 
         
 end
-results.F=F;
+
+results.F=F;   % portanza
 results.FORCE=sum(F,1);						%Total force
 M=cross(C3,F,3);			                 %Moments per panel
 results.M=M;
@@ -163,12 +173,14 @@ end%FUNCTION
 function[dw,DW]=fastdw(lattice)
 one_by_four_pi=1/(4*pi);
 
+%calcola le 'dw' specifiche per unità di vorticità gamma di ogni pannello dovute a tutti i vortici
+%si può fare perchè tanto dipende solo geometria e dalla posizione dei vortici 
 [psize vsize void]=size(lattice.VORTEX);
 
 
 %disp('running right')
 %psize=size(lattice.COLLOC,1);
-lemma=ones(1,psize);
+lemma=ones(1,psize);   % lo usa per costruire matrici con simmetrie
 
 LDW=zeros(psize,psize,7,3);
 
@@ -194,20 +206,23 @@ for j=1:(vsize-1)
     r2=lr2-mCOLLOC;
     
     warning off
-    LDW(:,:,j,:)=mega(r1,r2);
+    LDW(:,:,j,:)=mega(r1,r2);   % funzione fondamentale
     warning on
 end
-LDW(find((isnan(LDW(:,:,:,:)))))=0;
+LDW(find((isnan(LDW(:,:,:,:)))))=0; % per eventuali cancellazioni
 
-DW=-squeeze(sum(LDW,3))*one_by_four_pi;
+DW=-squeeze(sum(LDW,3))*one_by_four_pi; % vettori velocità indotte
 
-dw=sum(DW.*mN,3);
+dw=sum(DW.*mN,3); % prodotti scalari tra velocità indotta e versori normali
 end
 
 
 function[DW2]=mega(r1,r2)
+
+% è la subroutine per la parte 'geometrica', calcola i FAC e quindi le DW, mancano solo gamma e 1/4pi
+
 %% First part
-F1=cross(r1,r2,3);
+F1=cross(r1,r2,3);  % ogni vettore ha le componenti x,y,z nelle tre matrici parallele
 
 LF1=(sum(F1.^2,3));
 
@@ -258,7 +273,7 @@ DW(:,:,1)=F2(:,:,1).*L2;
 DW(:,:,2)=F2(:,:,2).*L2;
 DW(:,:,3)=F2(:,:,3).*L2;
 
-near=config('near');
+near=config('near');  % vettore vuoto
 
 DW2(:,:,1)=DW(:,:,1).*(1-(radial_distance<near));
 DW2(:,:,2)=DW(:,:,2).*(1-(radial_distance<near));

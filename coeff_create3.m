@@ -19,7 +19,9 @@ function [results]=coeff_create3(results,lattice,state,ref,geo);
 delta=0.01;
 q=0.5*state.rho*state.AS^2;			    %calculating dynamic pressure
 										%for coefficient calculation		
-[a b void]=size(results.F);
+[a b void]=size(results.F); % F=forza totale agente normale al pannello(da solver 9)
+			    % sembra che sia la portanza
+%a= pannelli
 
 %-------------------------------------------------------------------
 %     This type of compressibility correction yields to low drag
@@ -39,15 +41,21 @@ q=0.5*state.rho*state.AS^2;			    %calculating dynamic pressure
 %end 
 %-------------------------------------------------------------------
 
+
+% prima cosa da sistemare (variare ny dopo la mesh)
+% Cp è calcolato con l'area giusta, gli altri no
 npan=cumsum(sum((geo.nx+geo.fnx).*geo.ny,2).*(geo.symetric+1)'); %Number of panels per wing
 
 for s=1:a
 	normal_force(s)=squeeze(results.F(s,1,:))'*lattice.N(s,:)';                                
-end                                
+end 
+
+
 panel_area=tarea(lattice.XYZ);
 stat_press=normal_force./panel_area;	%Delta pressure, top/bottom
 results.cp=((stat_press)./(q))';
 
+%da qui nasce il problema, l'area è quasi perfetta (somma quella panelli)                               
 sonic=find(results.cp<fSonicCP(state));
 results.sonicpanels=zeros(size(results.cp));
 if isempty(sonic)
@@ -266,6 +274,8 @@ function [results]=spanload6(results,geo,lattice,state)
 % input var AS (airspeed) added 
 %   local chord computation function call added
 %
+
+% COMMENTATA!!! dal main
 
 %rho=config('rho');	                            %set density
 lemma=size(geo.b);								%number of partitions and wings
@@ -506,6 +516,7 @@ function [panel_area]=tarea(XYZ)
 % 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%qui non ci sono problemi, anzi
 [a b c]=size(XYZ);
 for i=1:a
    p1=[XYZ(i,1,1) XYZ(i,1,2) XYZ(i,1,3)];	%sets up the vectors 
@@ -549,6 +560,7 @@ function[lc]=fLocal_chord2(geo,lattice)
 %  order as colloc, N, and the others
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%determina prima corde(ma non le usa)<- commentare prima parte
 [indx1 indx2]=size(geo.b);
 
 for s=1:indx1;	   		%Looping over wings
@@ -564,7 +576,7 @@ for s=1:indx1				%Looping over wings
 end
 
 
-
+% quello che segue è perfetto! bisogna solo correggere ny per caso 3d
 
 lc=[];	%Local chord vector.
 

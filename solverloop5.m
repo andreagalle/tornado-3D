@@ -67,7 +67,7 @@ tdisp(' ')
 switch(quest)
    
 case 1  
-  [results]=solver9(results,state,geo,lattice,ref);
+  [results]=solver9(results,state,geo,lattice,ref); % non ci sono problemi
   [results]=coeff_create3(results,lattice,state,ref,geo);   
 
   fname=strcat(JID,'-Cx');

@@ -55,12 +55,17 @@ end
 
 %%%%
 %Steady state boundary condition column
+%caso stazionario->ruoto il vettore  corrente intorno al profilo
 wind=V.*([cos(state.alpha)*cos(state.betha) -cos(state.alpha)*sin(state.betha) sin(state.alpha)]);
+%genero lo stesso vettore riga per ogni pannello
 Wind=ones(a,1)*wind;
+
 for i=1:a
    Rot(i,:)=cross((lattice.COLLOC(i,:)-geo.CG),[state.P state.Q state.R]);
 end                                   
-veloc=Wind+Rot;
+veloc=Wind+Rot;  %   (Rot=zeros as P Q R se gli angoli sono costanti)
+
+%adesso condizione al contorno (prod scalare tra corrente e normali)
 bc(:,1)=sum(lattice.N.*veloc,2)';  %steady state bc
 %%%%%%%%%%%%%%%%%%%%%%%
 
