@@ -69,7 +69,7 @@ rhs=(setboundary5(lattice,state,geo))';
 %Solving for rhs           %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%	
 % determina intensità vortice di ogni pannello
- gamma=w2\rhs';   % risolve il sistema x=A\B
+gamma=w2\rhs';   % risolve il sistema x=A\B
 %disp('gauss... ok')
 
 % righe di gamma= (nx*ny)*2 per simmetria (la parte simmetrica ha segno opposto),
@@ -78,50 +78,7 @@ rhs=(setboundary5(lattice,state,geo))';
 %nota: le righe sono uguali (con questa geometria)
 
 % w2 =(nx*ny)*2 * (nx*ny)*2   quadrata 
-%%%%%%%%%%%%%%%%%%%%%%%%%%
-%NEW Solver	%     %  %
-%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%Gauss-Seidel
 
-%Mgs     = tril(w2)                          ;
-%Ngs     = triu(w2,1)                        ;
-%Mgs_inv = inv(Mgs)                          ; 
-%Cgs     = -Mgs_inv*Ngs                      ;
-%Qgs     = Mgs_inv*rhs'                      ;
-%gamma_0 = ones(size(rhs',1),size(rhs',2))   ;
-%err     = 1			     	    ;
-%gamma   = [] 				    ;
-
-%if norm(Cgs,2)>1
-
-%   disp('Il metodo potrebbe non convergere')
-
-%end
-
-
-
-%tic;
-%while any(find(err>10^-6)) && toc<300
-
-%     gamma   = Cgs*gamma_0+Qgs   ;
-%     err     = abs(gamma-gamma_0);
-%     gamma_0 = gamma	         ;
-
-%end
-
-%if toc>300
-%  
-%   disp('Il metodo non ha raggiunto la precisione richiesta 10^-6')
-
-%end %New Solver
-%%%%%%%%%%%%%%%%%%%%%%%%%%
-% LU method
-
-%[L U] = lu(w2);
-%appo  = L\rhs'; 
-%gamma = U\appo; 
-               
-               
     if state.pgcorr==1
         %tdisp('Trying PG correction')
         %Prandtl-Glauert compressibility correction

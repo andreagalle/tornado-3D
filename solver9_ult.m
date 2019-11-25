@@ -69,7 +69,7 @@ rhs=(setboundary5(lattice,state,geo))';
 %Solving for rhs           %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%	
 % determina intensità vortice di ogni pannello
- gamma=w2\rhs';   % risolve il sistema x=A\B
+%gamma=w2\rhs';   % risolve il sistema x=A\B
 %disp('gauss... ok')
 
 % righe di gamma= (nx*ny)*2 per simmetria (la parte simmetrica ha segno opposto),
@@ -101,7 +101,7 @@ rhs=(setboundary5(lattice,state,geo))';
 
 
 %tic;
-%while any(find(err>10^-6)) && toc<300
+%while any(find(err>10^-4)) && toc<300
 
 %     gamma   = Cgs*gamma_0+Qgs   ;
 %     err     = abs(gamma-gamma_0);
@@ -117,9 +117,9 @@ rhs=(setboundary5(lattice,state,geo))';
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 % LU method
 
-%[L U] = lu(w2);
-%appo  = L\rhs'; 
-%gamma = U\appo; 
+ [L U] = lu(w2);
+ appo  = L\rhs'; 
+ gamma = U\appo; 
                
                
     if state.pgcorr==1

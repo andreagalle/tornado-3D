@@ -44,8 +44,15 @@ q=0.5*state.rho*state.AS^2;			    %calculating dynamic pressure
 
 % prima cosa da sistemare (variare ny dopo la mesh)
 % Cp è calcolato con l'area giusta, gli altri no
-npan=cumsum(sum((geo.nx+geo.fnx).*geo.ny,2).*(geo.symetric+1)'); %Number of panels per wing
+try 
+    geo.raggio;
+    npan=cumsum(sum((geo.nx+geo.fnx).*geo.ny,2).*(geo.symetric+1)')*2; %Number of panels per wing
+catch
+    npan=cumsum(sum((geo.nx+geo.fnx).*geo.ny,2).*(geo.symetric+1)'); %Number of panels per wing
+end
 
+
+ 
 for s=1:a
 	normal_force(s)=squeeze(results.F(s,1,:))'*lattice.N(s,:)';                                
 end 

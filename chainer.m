@@ -10,7 +10,7 @@ function[]=chainer(n,r,varargin)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %da cencellare:RAM
-if n>16
+if n>32
    error('n_max=16')
 end
 
@@ -68,7 +68,7 @@ l = 2*r*sin(pi/n);  % partition span (length chain element)
 
 geo.flapped = zeros(1,nelem)  ;
 geo.nelem   = nelem           ;
-geo.nx      = ones(1,nelem)*6;  % panels chordwise matrix
+geo.nx      = ones(1,nelem)*36;  % panels chordwise matrix
 geo.ny      = ones(1,nelem)*ny;  % panels partition spanwise matrix
 geo.b       = ones(1,nelem)*l ;  % partition span matrix 
 geo.raggio  = r               ;  % hole radius
