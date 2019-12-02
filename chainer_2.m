@@ -1,4 +1,4 @@
-function[]=chainer(n,r,varargin)
+function[]=chainer(n,m,r,varargin)
 % function[]=chainer(n,r,'option')
 %INPUT
 %n = number of sides (even and n>2)
@@ -10,7 +10,7 @@ function[]=chainer(n,r,varargin)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %da cencellare:RAM
-if n>86
+if n*m>32*32
    error('n_max=32')
 end
 
@@ -50,41 +50,52 @@ else
 end
 
 cd aircraft
-load CHAINWING
-
-%ny=input('number of panels per partition (lato), ny= ');
-ny=1; %not implemented
-if isempty(ny) || ny==0
-    ny = 1;
-else
-    ny = abs(round(ny));
+try 
+   load CHAINWING
 end
 
+%ny=input('number of panels per partition (lato), ny= ');
+ny = 1; %panels element spanwise
+nx = m; %panels chordwise
 
 nelem = n/2;
 teta = 2*pi/n;
 l = 2*r*sin(pi/n);  % partition span (length chain element) 
 
 
-geo.flapped = zeros(1,nelem)  ;
-geo.nelem   = nelem           ;
-geo.nx      = ones(1,nelem)*86;  % panels chordwise matrix
-geo.ny      = ones(1,nelem)*ny;  % panels partition spanwise matrix
-geo.b       = ones(1,nelem)*l ;  % partition span matrix 
-geo.raggio  = r               ;  % hole radius
-geo.p	    = p		      ;  % periapse
-geo.semi    = c/2	      ;  % semilatus
-geo.c	    = c		      ;
+if r==0
+    geo.bit = 2;
+else
+    geo.bit = 1;
+end
 
 
-ecce = c/2/p-1;             % eccentricity
-semi_corda = c/2/sqrt(1-ecce^2)*sqrt(1-((r+ecce*c/2/(1-ecce^2))/(c/2/(1-ecce^2)))^2);
+geo.flapped  = zeros(1,nelem)  ;
+geo.nelem    = nelem           ;
+geo.nwing    = 1               ;
+geo.symetric = 1               ;
+geo.startx   = 0               ;
+geo.starty   = 0               ;
+geo.startz   = 0               ;
+geo.nx       = ones(1,nelem)*nx;  % panels chordwise matrix
+geo.ny       = ones(1,nelem)*ny;  % panels partition spanwise matrix
+geo.b        = ones(1,nelem)*l ;  % partition span matrix 
+geo.raggio   = r               ;  % hole radius
+geo.p	     = p		       ;  % periapse
+geo.semi     = c/2     	       ;  % semilatus
+geo.c	     = c		       ;
+
+
+ecce = c/2/p-1             % eccentricity
+semi_corda = c/2/sqrt(1-ecce^2)*sqrt(1-((r+ecce*c/2/(1-ecce^2))/(c/2/(1-ecce^2)))^2)
  
-geo.CG = [semi_corda,0,r];
+geo.CG        = [semi_corda,0,r];
+geo.ref_point = [0 0 0]         ;
 
 
 
 geo.TW          = zeros(1,nelem,2);
+geo.foil        = cell(2,nelem,2) ;
 geo.dihed       = zeros(1,nelem)  ;
 geo.T           = zeros(1,nelem)  ;
 geo.SW          = zeros(1,nelem)  ;
@@ -116,6 +127,8 @@ for i = 1:nelem
     teta_0 = teta_0+teta;
     
 end
+
+tor_version = 135;
 
 if isempty(AR)
    

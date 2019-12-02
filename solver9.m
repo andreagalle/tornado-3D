@@ -62,27 +62,65 @@ results.dwcond=cond(w2);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Setting up right hand side %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-rhs=(setboundary5(lattice,state,geo))';
+rhs=(setboundary5(lattice,state,geo))';  % ATTENZIONE:controllare se il trasposto va bene 
 %disp('rhs... ok')
+%gamma= inv(w2)*rhs';
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Solving for rhs           %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%	
-% determina intensità vortice di ogni pannello
- gamma=w2\rhs';   % risolve il sistema x=A\B
-%disp('gauss... ok')
 
+try
+   geo.raggio;
+   %%%%%%%%%%%%%%%%%%%%%%%%%%
+   %NEW Solver	%     %  %
+   %%%%%%%%%%%%%%%%%%%%%%%%%%
+   %%Gauss-Seidel_HIGH-DRIVE
+
+   err  = 10        ;
+   Xnew = zeros(a,1);
+   tic   		  ;
+  
+   while any(find(err> 10^-8))
+          
+          Xold = Xnew;
+  
+          for i=1:a
+             
+              ci1 = 0;
+              ci2 = 0;
+          
+              if i>1
+                 ci1 = sum(w2(i,1:i-1)'.*Xnew(1:i-1));
+              end
+             
+              ci2     = sum(w2(i,i+1:a)'.*Xold(i+1:a));
+             
+              Xnew(i) = 1/w2(i,i)*(-ci1-ci2+rhs(i))   ;
+  
+          end
+  
+          err = abs(Xnew-Xold);
+  
+          if toc>300
+              disp(max(err));
+          end
+  
+   end
+  
+  
+   toc
+   gamma = Xnew;
+catch                              
+   %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   %Solving for rhs           %
+   %%%%%%%%%%%%%%%%%%%%%%%%%%%%	
+   % determina intensità vortice di ogni pannello
+   gamma=w2\rhs';   % risolve il sistema x=A\B
+   %disp('gauss... ok')
+end
 % righe di gamma= (nx*ny)*2 per simmetria (la parte simmetrica ha segno opposto),
 % cioè le righe sono pari al numero di CONTROLLPOINT
-% colonne di gamma sono pari al numero di vortici (pannelli) CHORDWISE 
-%nota: le righe sono uguali (con questa geometria)
 
 % w2 =(nx*ny)*2 * (nx*ny)*2   quadrata 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
-%NEW Solver	%     %  %
-%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%Gauss-Seidel
-
 %Mgs     = tril(w2)                          ;
 %Ngs     = triu(w2,1)                        ;
 %Mgs_inv = inv(Mgs)                          ; 
@@ -115,13 +153,15 @@ rhs=(setboundary5(lattice,state,geo))';
 
 %end %New Solver
 %%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % LU method
 
 %[L U] = lu(w2);
 %appo  = L\rhs'; 
 %gamma = U\appo; 
+%%%%%%%%%%%%%%%%%%%%%%%%%%               
                
-               
+
     if state.pgcorr==1
         %tdisp('Trying PG correction')
         %Prandtl-Glauert compressibility correction
@@ -167,7 +207,7 @@ lehat(:,1)=le(:,1)./Lle;
 lehat(:,2)=le(:,2)./Lle;
 lehat(:,3)=le(:,3)./Lle;
 
-% noofderiv è il numero di vortici (pannelli) chordwise
+% adesso noofderiv=1 , dipendeva dalle condizoni al contorno (serviva per diff finite ecc..)  
 for j=1:nofderiv
     IW(:,j,1)=DWX*gamma(:,j);
     IW(:,j,2)=DWY*gamma(:,j);

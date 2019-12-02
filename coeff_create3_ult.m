@@ -44,15 +44,8 @@ q=0.5*state.rho*state.AS^2;			    %calculating dynamic pressure
 
 % prima cosa da sistemare (variare ny dopo la mesh)
 % Cp è calcolato con l'area giusta, gli altri no
-try 
-    geo.raggio;
-    npan=cumsum(sum((geo.nx+geo.fnx).*geo.ny,2).*(geo.symetric+1)')*2; %Number of panels per wing
-catch
-    npan=cumsum(sum((geo.nx+geo.fnx).*geo.ny,2).*(geo.symetric+1)'); %Number of panels per wing
-end
+npan=cumsum(sum((geo.nx+geo.fnx).*geo.ny,2).*(geo.symetric+1)'); %Number of panels per wing
 
-
- 
 for s=1:a
 	normal_force(s)=squeeze(results.F(s,1,:))'*lattice.N(s,:)';                                
 end 
@@ -107,19 +100,7 @@ Cn=results.MOMENTS(1,:,3)/(q*ref.S_ref*ref.b_ref);
 
 
 %% ------------ CL per wing computation
-
-try 
-    geo.raggio;
-    if geo.bit==1
-       npan=cumsum(sum((geo.nx+geo.fnx).*geo.ny,2).*(geo.symetric+1)')*2; %Number of panels per wing
-    else
-       npan=cumsum(sum((geo.nx+geo.fnx).*geo.ny,2).*(geo.symetric+1)'); %Number of panels per wing
-    end
-
-catch
-    npan=cumsum(sum((geo.nx+geo.fnx).*geo.ny,2).*(geo.symetric+1)'); %Number of panels per wing
-end
-
+npan=cumsum(sum((geo.nx+geo.fnx).*geo.ny,2).*(geo.symetric+1)'); %Number of panels per wing
 
 index1=1;
 
@@ -162,7 +143,7 @@ delta=config('delta');
 fac1=ref.b_ref /(2*state.AS);
 fac2=ref.C_mac /(2*state.AS);
 
-% Spanload and Finite Differences
+% Spanload and Finite Differences 
 try
 	geo.raggio;
 catch
