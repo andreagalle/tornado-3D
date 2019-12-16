@@ -209,12 +209,12 @@ lehat(:,3)=le(:,3)./Lle;
 
 % adesso noofderiv=1 , dipendeva dalle condizoni al contorno (serviva per diff finite ecc..)  
 for j=1:nofderiv
-    IW(:,j,1)=DWX*gamma(:,j);
+    IW(:,j,1)=DWX*gamma(:,j);  % InducedWind=Downwash(direzione)*intensità di cirolazione  (GAMMA=m^2/s , gamma = m/s)
     IW(:,j,2)=DWY*gamma(:,j);
     IW(:,j,3)=DWZ*gamma(:,j);
     
     G(:,1)=gamma(:,j).*lehat(:,1);	% Aligning vorticity along panel vortex
-    G(:,2)=gamma(:,j).*lehat(:,2);	% gamma*l=GAMMA (per calcolare la forza)
+    G(:,2)=gamma(:,j).*lehat(:,2);	
     G(:,3)=gamma(:,j).*lehat(:,3);
 
     wind1=state.AS*([cos(state.alpha)*cos(state.betha) -cos(state.alpha)*sin(state.betha) sin(state.alpha)]); %Aligning with wind
@@ -239,7 +239,7 @@ for j=1:nofderiv
         
 end
 
-results.F=F;   % portanza
+results.F=F;   % 3 matrici, componenti forze nelle tre direzioni su ogni pannello
 results.FORCE=sum(F,1);			 %Total force (su tutto il velivolo)
 M=cross(C3,F,3);	             %Moments per panel
 results.M=M;

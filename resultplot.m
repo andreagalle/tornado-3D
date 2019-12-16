@@ -81,14 +81,15 @@ switch var
 
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%        figure(4)% 	Delta cp plot
-        figure(94)% 	Delta cp plot
+        figure(4)% 	Delta cp plot
+%        figure(94)% 	Delta cp plot
         rotate3d on 
-        colormap(hot);
+      % colormap(hot);
+        colormap(jet);
         fill3(lattice.XYZ(:,:,1)',lattice.XYZ(:,:,2)',lattice.XYZ(:,:,3)',results.cp')
-        title('Delta cp distribution')
+       title('Delta cp distribution')
         colorbar('vert')
-	caxis([-1 2]);
+ 	caxis([-1.5 2]); % WARNING!! DELETE
         axis equal
        
         try
@@ -102,9 +103,18 @@ switch var
            axis equal
         end
         end
-       
-       
-       
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
+       %try
+	   geo.raggio;
+           figure(696)
+           rotate3d on 
+           colormap(hsv);
+           fill3(lattice.XYZ(:,:,1)',lattice.XYZ(:,:,2)',lattice.XYZ(:,:,3)',results.gamma')
+          title('Local Circulation')
+           colorbar('vert')
+       	 % caxis([-1.5 2]);
+           axis equal
+       %end 
         %*************************************************
         % Spanload plot, first attempt.
         
@@ -438,9 +448,12 @@ switch var
        
        
         figure(16)
-             plot(squeeze(results.matrix(1,1,:)),squeeze(results.matrix(2,1,:)));
-             xlabel('CL,[-].');
-             ylabel('CD,[-].');
+             plot(squeeze(results.matrix(1,1,:)),squeeze(results.matrix(2,1,:)),'b');
+             hold on
+             plot(squeeze(results.matrix(1,1,:)),squeeze(results.matrix(2,1,:)),'ob');
+	     
+	     xlabel('CL');
+             ylabel('CD');
              title('Induced Drag Polar');
              grid
              hold on
@@ -452,7 +465,25 @@ switch var
              CD=squeeze(results.matrix(2,1,:));
              Cm=squeeze(results.matrix(5,1,:));
              faeropolar(alpha1,CL,CD,Cm,'-o');
-       
+       figure(171)
+	     hold on
+	     plot(alpha1,CL,'b')
+	     plot(alpha1,Cm,'r')
+             plot(alpha1,CL,'ob')
+	     plot(alpha1,Cm,'or')
+		legend('CL','Cm')
+		xlabel('alpha, deg')
+		ylabel(['CL';'Cm'])
+		title('Liftcurve')
+		grid
+	figure(172)
+	     plot(CD,CL), 
+             xlabel('CD');
+             ylabel('CL');
+             title('Aerodymanic Polar');
+             grid
+	     %axis equal
+	     axis([0 .05 0 .1])
          try 
              alpha1=results.alpha_sweep.*180/pi;
              delta1=results.rudderangle.*180/pi;

@@ -138,8 +138,7 @@ end %if
   %%%%%%%%%%
 
 
-% h=figure(50);
- h=figure(950);
+ h=figure(50);
  set(gca,'Position',[0 0 1 1]);
  set(h,'Color','White');
 
@@ -209,9 +208,8 @@ end %if
    
 
  
-figure(92)
-%figure(2)
-plot3(lattice.XYZ(:,:,1)',lattice.XYZ(:,:,2)',lattice.XYZ(:,:,3)','m')
+figure(2)
+plot3(lattice.XYZ(:,:,1)',lattice.XYZ(:,:,2)',lattice.XYZ(:,:,3)','b')
 hold on
 grid on  
 for s=1:(t)  % pannello	
@@ -225,8 +223,9 @@ for s=1:(t)  % pannello
 
     rc=lattice.COLLOC(s,:);
     try
-	geo.raggio             ;
-	A = rc+lattice.N(s,:)/6;
+	geo.raggio                      ;
+	auto_scale = .025		;
+	A = rc+lattice.N(s,:)*auto_scale;
     catch
    	A = rc+lattice.N(s,:)  ;		%Check routine
     end
@@ -248,14 +247,19 @@ zlabel('Body z-coord')
 title('3D wing configuration, vortex and wake layout.')
 axis equal 
 
-%figure(3)
-figure(93)
+figure(3)
 plot3(lattice.XYZ(:,:,1)',lattice.XYZ(:,:,2)',lattice.XYZ(:,:,3)','k')
 hold on
 
 for s=1:(t)
    plot3(lattice.COLLOC(s,1),lattice.COLLOC(s,2),lattice.COLLOC(s,3),'g*')
-   plot3(NORMALS(s,:,1),NORMALS(s,:,2),NORMALS(s,:,3),'r:');
+   try
+	geo.raggio		      ;
+        aux = diff(NORMALS(s,:,:),1,2);
+        quiver3(NORMALS(s,1,1),NORMALS(s,1,2),NORMALS(s,1,3),aux(1,1,1),aux(1,1,2),aux(1,1,3),'r','linewidth',1,'maxheadsize',0.4)
+   catch
+        plot3(NORMALS(s,:,1),NORMALS(s,:,2),NORMALS(s,:,3),'r:');
+   end
 end
 
 axis equal

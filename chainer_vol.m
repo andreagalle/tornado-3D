@@ -1,4 +1,4 @@
-function[]=chainer(n,m,rp,r,c,varargin)
+function[]=chainer(n,m,rp,c,varargin)
 % function[]=chainer(n,m,rp,ecce)
 %INPUT:
 %n    = number of sides=panels spanwise=partition spanwise (even and n>2)
@@ -21,17 +21,57 @@ function[]=chainer(n,m,rp,r,c,varargin)
 
 
 if rem(n,2)~=0 || n<=2 
-   error('sides n>2 even')
+   error('sides n>2 even,')
 end
 
 
 semilatus = c/2			    ;
+%semilatus = rp*(1+ecce)		    ;       
 ecce      = semilatus/rp-1          ; %eccentricity
-semi_corda = c/2/sqrt(1-ecce^2)*sqrt(1-((r+ecce*c/2/(1-ecce^2))/(c/2/(1-ecce^2)))^2);
+a         = semilatus/(1-ecce^2)    ; %semi-axis major
+b	  = semilatus/sqrt(1-ecce^2); %semi-axis minor
+%d= 0.0891; nfl r=0.045
+%c = a-rp; % Focal dinstance
+
+%CONSTRAIN_NODE__________________________________________________________________________
+
+f=@(d)2*pi*(a^2/b^2*((2*b^2-semilatus^2)*d-1/3*d.^3)-a^2*b*sqrt(1-(semilatus/b)^2).*(asin(d/b)+d/b.*sqrt(1-(d/b).^2))...
+     -d*a^2/b^2.*(sqrt(b^2-d.^2)-sqrt(b^2-semilatus^2)).^2)-0.001347000000;
+
+iter = 0     	    ;  
+h    = 0.001 	    ;
+err  = 10^-15	    ;
+ERR  = 100   	    ;
+D    = [0 semilatus];
+tic          	    ;
+
+while ERR>err && toc<300
+
+	iter = iter+1		       ;   
+	d    = (D(1):h:D(2))	       ; 
+	F    = f(d)		       ; 
+	pos  = find(abs(diff(sign(F)))); 
+
+	if length(pos)~=1
+	    disp('nessuna o  più radici')
+	end
+
+	D   = [d(pos) d(pos+1)];
+	ERR = abs(diff(D))     ;
+	h   = h/1000	       ;
+end
+
+target = sum(D)/2;
+%fprintf('precisione volume %f10.10\n',f(target));
+%_______________________________________________________________________________________
+                                         
+d          = target  			              ;        
+semi_corda = d				              ; 
+r          = a/b*(sqrt(b^2-d^2)-sqrt(b^2-semilatus^2));  % hole radius
 
 disp(' ')
 disp([' Hole radius : ',num2str(r),' [m]'])
-disp([' Chord :       ',num2str(semi_corda*2),' [m]'])
+disp([' Chord :       ',num2str(d*2),' [m]'])
 
  
 cd aircraft
@@ -73,6 +113,8 @@ geo.semi     = semilatus       ;  % semilatus
 geo.c	     = c	       ;
 geo.e	     = ecce	       ;
 
+%ecce = c/2/rp-1;             % eccentricity
+%semi_corda = c/2/sqrt(1-ecce^2)*sqrt(1-((r+ecce*c/2/(1-ecce^2))/(c/2/(1-ecce^2)))^2);
  
 geo.CG        = [semi_corda,0,r];
 geo.ref_point = [0 0 0]         ;

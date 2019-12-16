@@ -1,51 +1,66 @@
-function[]=chainer(n,m,rp,r,c,varargin)
-% function[]=chainer(n,m,rp,ecce)
-%INPUT:
-%n    = number of sides=panels spanwise=partition spanwise (even and n>2)
-%m    = number of panels chordwise
-%rp   = max football radius [m]
-%ecce = eccentricity (ellipse)
-%ny   = 1 (default) partition panels spanwise
+function[]=chainer(n,m,r,varargin)
+% function[]=chainer(n,r,'option')
+%INPUT
+%n = number of sides (even and n>2)
+%r = hole radius [m]
+%ny=1 (default):
+%OPTION:
+% 'r' : bigger radius = 0.096 [m]
+% 'l' : bigger length = 0.300 [m]
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %da cencellare:RAM
-%if n*m>32*32
-%   error('n_max=32')
-%end
-
-
-%c  = 0.269 ;   % nfl football length (twice semilatus rectum)
-%rp = 0.076 ;   % nfl football radius (periapse)
-%e  = 0.7697;
-%AR=[];
-
-
-if rem(n,2)~=0 || n<=2 
-   error('sides n>2 even')
+if n*m>42*42
+   error('n_max=32')
 end
 
 
-semilatus = c/2			    ;
-ecce      = semilatus/rp-1          ; %eccentricity
-semi_corda = c/2/sqrt(1-ecce^2)*sqrt(1-((r+ecce*c/2/(1-ecce^2))/(c/2/(1-ecce^2)))^2);
+c = 0.269;   % nfl football length (twice semilatus rectum)
+p = 0.076;   % nfl football radius (periapse)
+AR=[];
 
-disp(' ')
-disp([' Hole radius : ',num2str(r),' [m]'])
-disp([' Chord :       ',num2str(semi_corda*2),' [m]'])
+if ~isempty(varargin)
 
- 
+    AR=varargin{1};
+
+    if strcmp(AR,'r')
+
+        if rem(n,2)~=0 || n<=2 || r>=0.09
+           error('sides n>2 even, radius r<0.09,   r_tot=0.096')
+        end
+
+        p = 0.096;  
+       
+    elseif strcmp(AR,'l')
+      
+        if rem(n,2)~=0 || n<=2  || r>=0.07
+           error('sides n>2 even, radius r<0.07,   r_tot=0.076')
+        end
+       
+        c = 0.300;
+    else
+        error('option unknow. Possible choise ''r'' or ''l''') 
+    end
+
+else
+    if rem(n,2)~=0 || n<=2 || r>=0.07
+       error('sides n>2 even, radius  r<0.07,   r_tot=0.076')
+    end
+
+end
+
 cd aircraft
 try 
-   load FOOTBALL
+   load CHAINWING
 end
 
 %ny=input('number of panels per partition (lato), ny= ');
 ny = 1; %panels element spanwise
 nx = m; %panels chordwise
 
-nelem = n/2          ;
-teta  = 2*pi/n	     ;
-l     = 2*r*sin(pi/n);  % partition span (length chain element) 
+nelem = n/2;
+teta = 2*pi/n;
+l = 2*r*sin(pi/n);  % partition span (length chain element) 
 
 
 if r==0
@@ -53,8 +68,6 @@ if r==0
 else
     geo.bit = 1;
 end
-
-
 
 
 geo.flapped  = zeros(1,nelem)  ;
@@ -68,11 +81,13 @@ geo.nx       = ones(1,nelem)*nx;  % panels chordwise matrix
 geo.ny       = ones(1,nelem)*ny;  % panels partition spanwise matrix
 geo.b        = ones(1,nelem)*l ;  % partition span matrix 
 geo.raggio   = r               ;  % hole radius
-geo.p	     = rp	       ;  % periapse
-geo.semi     = semilatus       ;  % semilatus
-geo.c	     = c	       ;
-geo.e	     = ecce	       ;
+geo.p	     = p		       ;  % periapse
+geo.semi     = c/2     	       ;  % semilatus
+geo.c	     = c		       ;
 
+
+ecce = c/2/p-1             % eccentricity
+semi_corda = c/2/sqrt(1-ecce^2)*sqrt(1-((r+ecce*c/2/(1-ecce^2))/(c/2/(1-ecce^2)))^2)
  
 geo.CG        = [semi_corda,0,r];
 geo.ref_point = [0 0 0]         ;
@@ -113,10 +128,21 @@ for i = 1:nelem
     
 end
 
-
 tor_version = 135;
 
-save FOOTBALL.mat geo tor_version
+if isempty(AR)
+   
+    save CHAINWING.mat geo tor_version
+
+else
+
+    if strcmp(AR,'r')
+        save CHAINWING_r.mat geo tor_version 
+    else   
+        save CHAINWING_l.mat geo tor_version    
+    end
+
+end
 
 clear
 
