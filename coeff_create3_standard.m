@@ -46,8 +46,6 @@ q=0.5*state.rho*state.AS^2;			    %calculating dynamic pressure
 % Cp è calcolato con l'area giusta, gli altri no
 npan=cumsum(sum((geo.nx+geo.fnx).*geo.ny,2).*(geo.symetric+1)'); %Number of panels per wing
 
-
- 
 for s=1:a
 	normal_force(s)=squeeze(results.F(s,1,:))'*lattice.N(s,:)';                                
 end 
@@ -102,9 +100,7 @@ Cn=results.MOMENTS(1,:,3)/(q*ref.S_ref*ref.b_ref);
 
 
 %% ------------ CL per wing computation
-
 npan=cumsum(sum((geo.nx+geo.fnx).*geo.ny,2).*(geo.symetric+1)'); %Number of panels per wing
-
 
 index1=1;
 
@@ -147,94 +143,89 @@ delta=config('delta');
 fac1=ref.b_ref /(2*state.AS);
 fac2=ref.C_mac /(2*state.AS);
 
-% Spanload and Finite Differences
-try
-	geo.raggio;
-catch
 
-        %Differentiating
-        dCX=(CX-CX(:,1))./delta;
-        dCY=(CY-CY(:,1))./delta;
-        dCZ=(CZ-CZ(:,1))./delta;
-       
-        dCL=(CL-CL(:,1))./delta;
-        dCD=(CD-CD(:,1))./delta;
-        dCC=(CC-CC(:,1))./delta;
-       
-        dCl=(Cl-Cl(:,1))./delta;
-        dCm=(Cm-Cm(:,1))./delta;
-        dCn=(Cn-Cn(:,1))./delta;
-       
-       
-       
-       
-          results.CL_a=dCL(2);
-          results.CD_a=dCD(2);
-          results.CC_a=dCC(2);
-          results.CX_a=dCX(2);
-          results.CY_a=dCY(2);
-          results.CZ_a=dCZ(2);
-          results.Cl_a=dCl(2);
-          results.Cm_a=dCm(2);
-          results.Cn_a=dCn(2);
-          
-          results.CL_b=dCL(3);
-          results.CD_b=dCD(3);
-          results.CC_b=dCC(3);
-          results.CX_b=dCX(3);
-          results.CY_b=dCY(3);
-          results.CZ_b=dCZ(3);
-          results.Cl_b=dCl(3);
-          results.Cm_b=dCm(3);
-          results.Cn_b=dCn(3);
-          
-          results.CL_P=dCL(4)/fac1;
-          results.CD_P=dCD(4)/fac1;
-          results.CC_P=dCC(4)/fac1;
-          results.CX_P=dCX(4)/fac1;
-          results.CY_P=dCY(4)/fac1;
-          results.CZ_P=dCZ(4)/fac1;
-          results.Cl_P=dCl(4)/fac1;
-          results.Cm_P=dCm(4)/fac1;
-          results.Cn_P=dCn(4)/fac1;
-          
-          results.CL_Q=dCL(5)/fac2;
-          results.CD_Q=dCD(5)/fac2;
-          results.CC_Q=dCC(5)/fac2;
-          results.CX_Q=dCX(5)/fac2;
-          results.CY_Q=dCY(5)/fac2;
-          results.CZ_Q=dCZ(5)/fac2;
-          results.Cl_Q=dCl(5)/fac2;
-          results.Cm_Q=dCm(5)/fac2;
-          results.Cn_Q=dCn(5)/fac2;
-          
-          results.CL_R=dCL(6)/fac1;
-          results.CD_R=dCD(6)/fac1;
-          results.CC_R=dCC(6)/fac1;
-          results.CX_R=dCX(6)/fac1;
-          results.CY_R=dCY(6)/fac1;
-          results.CZ_R=dCZ(6)/fac1;
-          results.Cl_R=dCl(6)/fac1;
-          results.Cm_R=dCm(6)/fac1;
-          results.Cn_R=dCn(6)/fac1;
-          
-          try
-           results.CL_d=dCL(7:end);
-           results.CD_d=dCD(7:end);
-           results.CC_d=dCC(7:end);
-           results.CX_d=dCX(7:end);
-           results.CY_d=dCY(7:end);
-           results.CZ_d=dCZ(7:end);
-           results.Cl_d=dCl(7:end);
-           results.Cm_d=dCm(7:end);
-           results.Cn_d=dCn(7:end);
-          end
-       
-        return   
-        [results]=spanload6(results,geo,lattice,state);
-       
-        [lemma]=fStripforce(geo,results,lattice,state,ref,vCfraction)
-end %try
+%%Differentiating
+dCX=(CX-CX(:,1))./delta;
+dCY=(CY-CY(:,1))./delta;
+dCZ=(CZ-CZ(:,1))./delta;
+
+dCL=(CL-CL(:,1))./delta;
+dCD=(CD-CD(:,1))./delta;
+dCC=(CC-CC(:,1))./delta;
+
+dCl=(Cl-Cl(:,1))./delta;
+dCm=(Cm-Cm(:,1))./delta;
+dCn=(Cn-Cn(:,1))./delta;
+
+
+
+
+   results.CL_a=dCL(2);
+   results.CD_a=dCD(2);
+   results.CC_a=dCC(2);
+   results.CX_a=dCX(2);
+   results.CY_a=dCY(2);
+   results.CZ_a=dCZ(2);
+   results.Cl_a=dCl(2);
+   results.Cm_a=dCm(2);
+   results.Cn_a=dCn(2);
+   
+   results.CL_b=dCL(3);
+   results.CD_b=dCD(3);
+   results.CC_b=dCC(3);
+   results.CX_b=dCX(3);
+   results.CY_b=dCY(3);
+   results.CZ_b=dCZ(3);
+   results.Cl_b=dCl(3);
+   results.Cm_b=dCm(3);
+   results.Cn_b=dCn(3);
+   
+   results.CL_P=dCL(4)/fac1;
+   results.CD_P=dCD(4)/fac1;
+   results.CC_P=dCC(4)/fac1;
+   results.CX_P=dCX(4)/fac1;
+   results.CY_P=dCY(4)/fac1;
+   results.CZ_P=dCZ(4)/fac1;
+   results.Cl_P=dCl(4)/fac1;
+   results.Cm_P=dCm(4)/fac1;
+   results.Cn_P=dCn(4)/fac1;
+   
+   results.CL_Q=dCL(5)/fac2;
+   results.CD_Q=dCD(5)/fac2;
+   results.CC_Q=dCC(5)/fac2;
+   results.CX_Q=dCX(5)/fac2;
+   results.CY_Q=dCY(5)/fac2;
+   results.CZ_Q=dCZ(5)/fac2;
+   results.Cl_Q=dCl(5)/fac2;
+   results.Cm_Q=dCm(5)/fac2;
+   results.Cn_Q=dCn(5)/fac2;
+   
+   results.CL_R=dCL(6)/fac1;
+   results.CD_R=dCD(6)/fac1;
+   results.CC_R=dCC(6)/fac1;
+   results.CX_R=dCX(6)/fac1;
+   results.CY_R=dCY(6)/fac1;
+   results.CZ_R=dCZ(6)/fac1;
+   results.Cl_R=dCl(6)/fac1;
+   results.Cm_R=dCm(6)/fac1;
+   results.Cn_R=dCn(6)/fac1;
+   
+   try
+    results.CL_d=dCL(7:end);
+    results.CD_d=dCD(7:end);
+    results.CC_d=dCC(7:end);
+    results.CX_d=dCX(7:end);
+    results.CY_d=dCY(7:end);
+    results.CZ_d=dCZ(7:end);
+    results.Cl_d=dCl(7:end);
+    results.Cm_d=dCm(7:end);
+    results.Cn_d=dCn(7:end);
+   end
+
+%return   
+%[results]=spanload6(results,geo,lattice,state);
+
+%[lemma]=fStripforce(geo,results,lattice,state,ref,vCfraction)
 
 end%function
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

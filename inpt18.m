@@ -514,11 +514,41 @@ case(4)
          	end
       end
    
-  case(5)
+ case(5)
      %f_version_geo_transform;
      geo=bodyinput(geo);
-     
-     
+
+case(6) %Football geometry
+
+        disp(' ')
+        disp(' ') 
+        nxex = input(' Number of panels spanwise :   ');
+        nyex = input(' Number of panels chordwise :  ');
+        
+	loop696=0;
+	while loop696==0
+            rp   = input(' Maximum radius (0.076) [m] :  ');
+	    r    = input(' Hole radius    (0.051) [m] :  ');
+            c    = input(' Maximum length (0.269) [m] :  ');
+           %ecce = input(' Ellipse eccentricity :	 ');
+           %rex  = input(' Hole radius [m]              ');
+           %chainer_2(nxex,nyex,rex)
+	    ecx  = c/2/rp-1; 
+	    if ecx>=1 || ecx<=0 || r>=rp
+		disp(' ')
+	        disp([' Eccentricity : ',num2str(ecx)])
+	        disp([' Hole radius : ',num2str(r),'  Maximum radius : ',num2str(rp) ])
+		disp(' ')
+	    else
+		loop696=1;
+	    end
+	end
+            chainer_ult(nxex,nyex,rp,r,c)
+            disp(' ')
+            disp(' ')
+            disp('  __*\\Football geometry avaible//*__')
+            %TBD
+      
    case 0
       loop1=0;
    

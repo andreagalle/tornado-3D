@@ -67,7 +67,7 @@ tdisp(' ')
 switch(quest)
    
 case 1  
-  [results]=solver9(results,state,geo,lattice,ref);
+  [results]=solver9(results,state,geo,lattice,ref); % non ci sono problemi
   [results]=coeff_create3(results,lattice,state,ref,geo);   
 
   fname=strcat(JID,'-Cx');
@@ -101,17 +101,20 @@ case 2
  
       	results.alpha_sweep(j)=state.alpha;	
         
-        
-results.matrix(:,:,j)=[results.CL results.CL_a results.CL_b results.CL_P results.CL_Q results.CL_R
-           results.CD results.CD_a results.CD_b results.CD_P results.CD_Q results.CD_R
-           results.CC results.CC_a results.CC_b results.CC_P results.CC_Q results.CC_R
-           results.Cl results.Cl_a results.Cl_b results.Cl_P results.Cl_Q results.Cl_R
-           results.Cm results.Cm_a results.Cm_b results.Cm_P results.Cm_Q results.Cm_R
-           results.Cn results.Cn_a results.Cn_b results.Cn_P results.Cn_Q results.Cn_R
-           results.CX results.CX_a results.CX_b results.CX_P results.CX_Q results.CX_R
-           results.CY results.CY_a results.CY_b results.CY_P results.CY_Q results.CY_R
-           results.CZ results.CZ_a results.CZ_b results.CZ_P results.CZ_Q results.CZ_R]; 
-        
+        try
+           geo.raggio;
+           results.matrix(:,1,j) = [results.CL results.CD results.CC results.Cl results.Cm results.Cn results.CX results.CY results.CZ]';
+        catch 
+           results.matrix(:,:,j) = [results.CL results.CL_a results.CL_b results.CL_P results.CL_Q results.CL_R
+                                    results.CD results.CD_a results.CD_b results.CD_P results.CD_Q results.CD_R
+                                    results.CC results.CC_a results.CC_b results.CC_P results.CC_Q results.CC_R
+                                    results.Cl results.Cl_a results.Cl_b results.Cl_P results.Cl_Q results.Cl_R
+                                    results.Cm results.Cm_a results.Cm_b results.Cm_P results.Cm_Q results.Cm_R
+                                    results.Cn results.Cn_a results.Cn_b results.Cn_P results.Cn_Q results.Cn_R
+                                    results.CX results.CX_a results.CX_b results.CX_P results.CX_Q results.CX_R
+                                    results.CY results.CY_a results.CY_b results.CY_P results.CY_Q results.CY_R
+                                    results.CZ results.CZ_a results.CZ_b results.CZ_P results.CZ_Q results.CZ_R]; 
+        end %try 
         
 
 end

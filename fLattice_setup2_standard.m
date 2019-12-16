@@ -100,13 +100,6 @@ end
         end
         temporary(:,1,3)=temporary(:,2,3); %Flattening wake
         temporary(:,4,3)=temporary(:,3,3); %Flattening wake
-	
-	try 
-	    geo.raggio;
-	    temporary(:,1,2)=temporary(:,2,2);
-	    temporary(:,4,2)=temporary(:,3,2);
-	end
- 
         lattice.VORTEX=temporary;    
     end    
             
@@ -131,10 +124,10 @@ end
 
 %npan=sum(sum((geo.nx+geo.fnx).*geo.ny,2).*(geo.symetric+1)');%number of panels            
 
-lattice.COLLOC = [];%zeros(npan,3);       %initializing
-lattice.VORTEX = [];%zeros(npan,3);
-lattice.N      = [];%zeros(npan,8,3);    
-lattice.XYZ    = [];%zeros(npan,5,3);
+lattice.COLLOC=[];%zeros(npan,3);       %initializing
+lattice.VORTEX=[];%zeros(npan,3);
+lattice.N=[];%zeros(npan,8,3);
+lattice.XYZ=[];%zeros(npan,5,3);
 
 X=[];
 Y=[];
@@ -155,11 +148,11 @@ noofwings=size(loopsperwing');
 for s=1:noofwings		%Intermediate variable setuploop(numero di colonne di geo.nelem)
     try
 	r_football  = geo.raggio	;       % hole radius
-	semilatus   = geo.semi		;	% semilatus rectum
+	semilatus   = geo.semi		;	% semilatus rectus
 	periapse    = geo.p		;	% periapse
 	ecce        = geo.c(s)/2/geo.p-1;       % eccentricity
-        semi_corda  = geo.c(s)/2/sqrt(1-ecce^2)*sqrt(1-((r_football+ecce*geo.c(s)/2/(1-ecce^2))/(geo.c(s)/2/(1-ecce^2)))^2); 
-        CHORDS(s,1) = semi_corda*2; 
+        semi_corda  = geo.c(s)/2/sqrt(1-ecce^2)*sqrt(1-((r_football+ecce*geo.c(s)/2/(1-ecce^2))/(geo.c(s)/2/(1-ecce^2)))^2);
+        CHORDS(s,1) = semi_corda*2;
 
     catch   	
 	CHORDS(s,1)=geo.c(s);   %calculating chords of first element
@@ -178,7 +171,7 @@ for s=1:noofwings
       
       CHORDS(s,t+1)=CHORDS(s,t)*geo.T(s,t);	%calculating element root-chord
       									    
-      % coordinate per la mesh standard 
+            
       SX(s,t+1)=0.25*CHORDS(s,t)+geo.b(s,t)*(tan(geo.SW(s,t)))...
          -0.25*CHORDS(s,t+1)+SX(s,t) ;					
       SY(s,t+1)=geo.b(s,t)*cos(geo.dihed(s,t))+SY(s,t);   
@@ -188,198 +181,59 @@ end
 
 
 %MAIN GEOMETRY SETUP LOOP, CREATES Partition QUAD PANELS, VORTICIES AND COLL-POINTS
-try 
-       geo.raggio;
-       	
-       if geo.bit==1
-          
-           %%%%%%%%%
-           %% NEW %% Mean camber surface
-           %%%%%%%%%
-           s   = 1; 
-           bit = 1; 
-           
-             for t=1:noofloops(s) %setuploop per ogni elemento ''t''
-                [C V N2 P]=geometry19(geo.fnx(s,t),geo.ny(s,t),geo.nx(s,t),...
-                   geo.fsym(s,t),geo.fc(s,t),geo.flapped(s,t),geo.TW(s,t,:),geo.foil(s,t,:),...
-                   geo.T(s,t),geo.SW(s,t),CHORDS(s,t),geo.dihed(s,t),geo.b(s,t),...
-                   geo.symetric(s),SX(s,t),SY(s,t),SZ(s,t),geo.meshtype(s,t),r_football,t,semilatus,periapse,bit,geo.nelem);
-                
-                 lattice.COLLOC = [lattice.COLLOC;C]; % collocazione delle normali
-                 lattice.VORTEX = [lattice.VORTEX;V]; %collOC(x,y,z) di TUTTI vortici:2 di mezzeria(V1),2 di rilascio TEP,e hinge flap. 
-                 lattice.N      = [lattice.N;N2]    ;
-                 lattice.XYZ    = [lattice.XYZ;P]   ;
-
-	
-             end
-           %%%%%%%%%
-	   lattice.XYZp        = lattice.XYZ        ;
-	   lattice.XYZp(:,:,3) = 0                  ;
-	   panels_area         = tarea(lattice.XYZp); 
-	  %panels_area         = tarea(lattice.XYZ); 
-	  % panels_area_ext = panels_area((geo.ny*geo.nx)*2+1:end);  %*2 perchè nx è la metà di tutto il bordo
-	   
-	   for k = 1:noofloops(s)
-	     
-		S(s,k)    = sum(panels_area(1+geo.nx(s)*(k-1):geo.nx(s)*k))*2; % 2 per la simmetria
-		Cmgc(s,k) = CHORDS(s,k)	                                     ;
-
-	   end
-               
-           % config restituisce un vettore vuoto (che può essere riempito a priori) 
-           ref.b_ref=config('b_ref');
-           if isempty(ref.b_ref)
-              B = (periapse+r_football)/2;
-              ref.b_ref=B(1)             ;	%reference span = half-span of first wing
-              ref.b_ref=ref.b_ref*(geo.symetric(1)+1);
-             
-           end
-           
-           ref.S_ref=config('S_ref');
-           if isempty(ref.S_ref)
-              S_r=sum(S,2);
-              ref.S_ref=S_r(1);	%reference area = area of first wing
-           end
-           
-	
-           ref.C_mgc = Cmgc(1,1);		%Mean (media) Geometric Chord  Gross surface  Main (first)
-           
-           
-           ref.C_mac=config('C_mac');
-           if isempty(ref.C_mac)  
-                                                                        
-               ref.C_mac = ref.C_mgc;                                       %Main (first) wing Mean aerodymaic chord calculation 
-           end
-           
-           ref.mac_pos=config('mac_pos');  % vettore
-           if isempty(ref.mac_pos)  
-              [void ref.mac_pos]=fCmac(CHORDS(1,:),geo.b(1,:),geo.SW(1,:),...
-                  SX(1,:),SY(1,:),SZ(1,:),geo.dihed(1,:),geo.symetric(1)); %Main (first) wing Mean aerodymaic chord calculation   
-              %mac_pos=-mac_pos
-           end
+for s=1:noofwings
+   for t=1:noofloops(s) %setuploop per ogni elemento ''t''
+      [C V N2 P]=geometry19(geo.fnx(s,t),geo.ny(s,t),geo.nx(s,t),...
+         geo.fsym(s,t),geo.fc(s,t),geo.flapped(s,t),geo.TW(s,t,:),geo.foil(s,t,:),...
+         geo.T(s,t),geo.SW(s,t),CHORDS(s,t),geo.dihed(s,t),geo.b(s,t),...
+         geo.symetric(s),SX(s,t),SY(s,t),SZ(s,t),geo.meshtype(s,t),r_football,t,semilatus,periapse);
       
-       else % senza foro
+      lattice.COLLOC=[lattice.COLLOC;C]; % collocazione delle normali
+      lattice.VORTEX=[lattice.VORTEX;V]; %collOC(x,y,z) di TUTTI vortici:2 di mezzeria(V1),2 di rilascio TEP,e hinge flap. 
+      lattice.N=[lattice.N;N2];
       
-           %%%%%%%%%
-           %% NEW %% External surface
-           %%%%%%%%%
-       
-           s         = 1; 
-           bit       = 2; 
-
-             for t=1:noofloops(s) %setuploop per ogni elemento ''t''
-                [C V N2 P]=geometry19(geo.fnx(s,t),geo.ny(s,t),geo.nx(s,t),...
-                   geo.fsym(s,t),geo.fc(s,t),geo.flapped(s,t),geo.TW(s,t,:),geo.foil(s,t,:),...
-                   geo.T(s,t),geo.SW(s,t),CHORDS(s,t),geo.dihed(s,t),geo.b(s,t),...
-                   geo.symetric(s),SX(s,t),SY(s,t),SZ(s,t),geo.meshtype(s,t),r_football,t,semilatus,periapse,bit,geo.nelem);
-                
-                 lattice.COLLOC = [lattice.COLLOC;C]; % collocazione delle normali
-                 lattice.VORTEX = [lattice.VORTEX;V]; %collOC(x,y,z) di TUTTI vortici:2 di mezzeria(V1),2 di rilascio TEP,e hinge flap. 
-                 lattice.N      = [lattice.N;N2]    ;
-                 lattice.XYZ    = [lattice.XYZ;P]   ;
-                 
-             end
-
-
-           panels_area = tarea(lattice.XYZ);  %proiettiamo per s_ref (una volta per quella senza foro e per due con foro 
-	   
-	   for k = 1:noofloops(s)
-	     
-		S(s,k)    = sum(panels_area(1+geo.nx(s)*(k-1):geo.nx(s)*k))*2;  % 2 per la simmetria
-		Cmgc(s,k) = CHORDS(s,k)                                      ;
-
-	   end
- 
-           ref.b_ref=config('b_ref');
-           if isempty(ref.b_ref)
-              B = periapse  ;
-              ref.b_ref=B(1);	%reference span = half-span of first wing
-              ref.b_ref=ref.b_ref*(geo.symetric(1)+1);
-             
-           end
-           
-           ref.S_ref=config('S_ref');
-           if isempty(ref.S_ref)
-              S_r=sum(S,2);
-              ref.S_ref=S_r(1); 	%reference area = area of first wing
-           end
-            	
-           ref.C_mgc=Cmgc(1,1);		%Mean (media) Geometric Chord  Gross surface  Main (first)
-           
-           
-           ref.C_mac=config('C_mac');
-           if isempty(ref.C_mac)  
-                                                                                                
-               ref.C_mac = ref.C_mgc;                      %Main (first) wing Mean aerodymaic chord calculation 
-           end
-           
-           ref.mac_pos=config('mac_pos'); %vettore
-           if isempty(ref.mac_pos)  
-              [void ref.mac_pos]=fCmac(CHORDS(1,:),geo.b(1,:),geo.SW(1,:),...
-                  SX(1,:),SY(1,:),SZ(1,:),geo.dihed(1,:),geo.symetric(1))  %Main (first) wing Mean aerodymaic chord calculation   
-           end 
+      S(s,t)=geo.b(s,t)*CHORDS(s,t)*((1+geo.T(s,t)))/2;  %superficie elemento??? 
+      Cmgc(s,t)=S(s,t)/geo.b(s,t);
       
-       end
+      if geo.symetric(s)==1
+         S(s,t)=S(s,t)*2;
+      end
 
-
-catch  %standard
-
-      %MAIN GEOMETRY SETUP LOOP, CREATES Partition QUAD PANELS, VORTICIES AND COLL-POINTS
-      for s=1:noofwings
-         for t=1:noofloops(s) %setuploop per ogni elemento ''t''
-            [C V N2 P]=geometry19(geo.fnx(s,t),geo.ny(s,t),geo.nx(s,t),...
-               geo.fsym(s,t),geo.fc(s,t),geo.flapped(s,t),geo.TW(s,t,:),geo.foil(s,t,:),...
-               geo.T(s,t),geo.SW(s,t),CHORDS(s,t),geo.dihed(s,t),geo.b(s,t),...
-               geo.symetric(s),SX(s,t),SY(s,t),SZ(s,t),geo.meshtype(s,t));
-            
-            lattice.COLLOC=[lattice.COLLOC;C]; % collocazione delle normali
-            lattice.VORTEX=[lattice.VORTEX;V]; %collOC(x,y,z) di TUTTI vortici:2 di mezzeria(V1),2 di rilascio TEP,e hinge flap. 
-            lattice.N=[lattice.N;N2];
-            
-            S(s,t)=geo.b(s,t)*CHORDS(s,t)*((1+geo.T(s,t)))/2;  %superficie elemento
-            Cmgc(s,t)=S(s,t)/geo.b(s,t);
-            
-            if geo.symetric(s)==1
-               S(s,t)=S(s,t)*2;
-            end
-      
-            lattice.XYZ=[lattice.XYZ;P];
-         end
-      end
-     
-      ref.b_ref=config('b_ref');
-      if isempty(ref.b_ref)
-         B=sum(geo.b,2);
-         ref.b_ref=B(1);	%reference span = half-span of first wing
-         ref.b_ref=ref.b_ref*(geo.symetric(1)+1);
-         
-      end
-       
-      ref.S_ref=config('S_ref');
-      if isempty(ref.S_ref)
-         S_r=sum(S,2);
-         ref.S_ref=S_r(1);	%reference area = area of first wing
-      end
-       
-      C_m=sum(Cmgc.*S,2);	
-      ref.C_mgc=C_m(1)/ref.S_ref;		%Mean (media) Geometric Chord  Gross surface  Main (first)
-       
-       
-      ref.C_mac=config('C_mac');
-      if isempty(ref.C_mac)  
-         [ref.C_mac void]=fCmac(CHORDS(1,:),geo.b(1,:),geo.SW(1,:),...
-            SX(1,:),SY(1,:),SZ(1,:),geo.dihed(1,:),geo.symetric(1)); %Main (first) wing Mean aerodymaic chord calculation 
-      end
-     
-      ref.mac_pos=config('mac_pos');   %vettore
-      if isempty(ref.mac_pos)  
-         [void ref.mac_pos]=fCmac(CHORDS(1,:),geo.b(1,:),geo.SW(1,:),...
-             SX(1,:),SY(1,:),SZ(1,:),geo.dihed(1,:),geo.symetric(1)); %Main (first) wing Mean aerodymaic chord calculation   
-         %mac_pos=-mac_pos
-      end
+      lattice.XYZ=[lattice.XYZ;P];
+   end
 end
 
+ref.b_ref=config('b_ref');
+if isempty(ref.b_ref)
+   B=sum(geo.b,2);
+   ref.b_ref=B(1);	%reference span = half-span of first wing
+   ref.b_ref=ref.b_ref*(geo.symetric(1)+1);
+   
+end
 
+ref.S_ref=config('S_ref');
+if isempty(ref.S_ref)
+   S_r=sum(S,2);
+   ref.S_ref=S_r(1);	%reference area = area of first wing
+end
+
+C_m=sum(Cmgc.*S,2);	
+ref.C_mgc=C_m(1)/ref.S_ref;		%Mean (media) Geometric Chord  Gross surface  Main (first)
+
+
+ref.C_mac=config('C_mac');
+if isempty(ref.C_mac)  
+   [ref.C_mac void]=fCmac(CHORDS(1,:),geo.b(1,:),geo.SW(1,:),...
+      SX(1,:),SY(1,:),SZ(1,:),geo.dihed(1,:),geo.symetric(1)); %Main (first) wing Mean aerodymaic chord calculation 
+end
+
+ref.mac_pos=config('mac_pos');
+if isempty(ref.mac_pos)  
+   [void ref.mac_pos]=fCmac(CHORDS(1,:),geo.b(1,:),geo.SW(1,:),...
+       SX(1,:),SY(1,:),SZ(1,:),geo.dihed(1,:),geo.symetric(1)); %Main (first) wing Mean aerodymaic chord calculation   
+   %mac_pos=-mac_pos
+end
+ 
 lock(1)=0;	%Unlock geometry loaded bit
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -395,7 +249,7 @@ end
 
 [a b c]=size(lattice.VORTEX);
 V2=lattice.VORTEX;
-c=[1 b]; % prima e ultima colonna sono i TEP
+c=[1 b];
 
 infx=infdist*cos(state.alpha)*cos(state.betha);
 infy=-infdist*sin(state.betha);
@@ -403,17 +257,17 @@ infz=infdist*sin(state.alpha)*cos(state.betha);
 
 for t=1:a
    for s=1:2
-   	x = infx+lattice.VORTEX(t,c(s),1);
-        y = infy+lattice.VORTEX(t,c(s),2);
-        z = infz+lattice.VORTEX(t,c(s),3);
-       
-        psi   = state.P/state.AS*x;
-        theta = state.Q/state.AS*x;
-        fi    = state.R/state.AS*x;
+   	x=infx+lattice.VORTEX(t,c(s),1);
+      y=infy+lattice.VORTEX(t,c(s),2);
+      z=infz+lattice.VORTEX(t,c(s),3);
       
-        dx(t,s) = -x*(2-cos(theta)-cos(fi))             ;
-        dy(t,s) = +sin(psi)*z-sin(fi)*x+(1-cos(psi))*y  ;
-        dz(t,s) = sin(theta)*x-sin(psi)*y+(1-cos(psi))*z;
+      psi=state.P/state.AS*x;
+  	  theta=state.Q/state.AS*x;
+   	  fi=state.R/state.AS*x;
+      
+      dx(t,s)=-x*(2-cos(theta)-cos(fi));
+   	  dy(t,s)=+sin(psi)*z-sin(fi)*x+(1-cos(psi))*y;
+      dz(t,s)=sin(theta)*x-sin(psi)*y+(1-cos(psi))*z;
       
    end
 end
@@ -743,17 +597,13 @@ INF2=[];
 if isempty(varargin)
    raggio     = [];
    ti         = [];
-   semilatus  = [];
+   semirectus = [];
    peri       = [];
-   bit        = [];
-   nelem      = [];
 else
    raggio     = varargin{1};
    ti         = varargin{2};
-   semilatus  = varargin{3};
+   semirectus = varargin{3};
    peri	      = varargin{4};
-   bit        = varargin{5};
-   nelem      = varargin{6};
 end
 
 ox=sx;
@@ -781,7 +631,7 @@ dr=[a1' a2'];   %è un vettore (riga) inutile perche senza flap a2=0
 %%%%%%%%%%%%%%%%%%
 % Plotting planform (crea una griglia sull'elemento piano)
 %%%%%%%%%%%%%%%%%%
-% questo è per il plot del partition layout (inutile per la football)
+
 %sfruttando le origini dell'elemento determina le coordinate dei 4 spigoli (ma l'asse 'y' viene traslato
 % al quarto di corda e quindi l'origine è sul quarto di corda!!)  
 lem(1)=0.25*c;
@@ -819,20 +669,10 @@ end
 %axis equal
 
 if flapped==0
-
-	if isempty(bit)
-
-  	    [p]=tmesh2(wingx,wingy,wingz,nx,ny,meshtype);
-	    PX(:,:)=p(:,:,1); %estraggo le matrici di PANEL!!!<<<<-<<<<-<---<<<-<---<
-	    PY(:,:)=p(:,:,2);
-	    PZ(:,:)=p(:,:,3);
-	else
-	    [p]=tmesh696(c,raggio,ti,semilatus,peri,nx,ny,nelem,bit);
-	    PX(:,:)=p(:,:,1); %estraggo le matrici di PANEL!!!<<<<-<<<<-<---<<<-<---<
-	    PY(:,:)=p(:,:,2);
-	    PZ(:,:)=p(:,:,3);
-	end
-	
+	[p]=tmesh2(wingx,wingy,wingz,nx,ny,meshtype);
+	PX(:,:)=p(:,:,1); %estraggo le matrici di PANEL!!!<<<<-<<<<-<---<<<-<---<
+	PY(:,:)=p(:,:,2);
+	PZ(:,:)=p(:,:,3);
 else
    tempx=wingx(3:4);
    tempy=wingy(3:4);
@@ -872,8 +712,8 @@ nx=nx+fnx;
 % vortex coo-rds, and collocation coo-rds		             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-[X_1_S,lemma_1_S_tot]=slope2(foil(1,1,1),c,raggio,ti,semilatus,peri,bit); %element inboard camber slope
-[X_2_S,lemma_2_S_tot]=slope2(foil(1,1,2),c,raggio,ti,semilatus,peri,bit); %element outboard camber slope
+[X_1_S,lemma_1_S_tot]=slope2(foil(1,1,1),c,raggio,ti,semirectus,peri); %element inboard camber slope
+[X_2_S,lemma_2_S_tot]=slope2(foil(1,1,2),c,raggio,ti,semirectus,peri); %element outboard camber slope
 
 t=0;
 for j=0:(ny-1);
@@ -1011,7 +851,7 @@ end% fine del doppio ciclo for
 
      C=[C1;C2];
      V=V1;
-     Vor=[TEP1(:,1,:) HP(:,1,:) V(:,:,:) HP(:,2,:) TEP1(:,2,:)]; 
+     Vor=[TEP1(:,1,:) HP(:,1,:) V(:,:,:) HP(:,2,:) TEP1(:,2,:)];
      
      
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1019,7 +859,7 @@ end% fine del doppio ciclo for
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %i punti C detrminano la posizione delle normali
-N=normals4(C,V,S,bit); %questo è un potenziale problema per una superficie curva (leggi help) 
+N=normals4(C,V,S); %questo è un potenziale problema per una superficie curva (leggi help) 
 V=Vor;
 
 %secondo nocciolo della questione, collega le coordinate, banale
@@ -1055,7 +895,7 @@ end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [normal]=normals4(colloc,vortex,C_Slope,varargin)
+function [normal]=normals4(colloc,vortex,C_Slope)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % NORMALS: Essential function for TORNADO						
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1074,20 +914,12 @@ function [normal]=normals4(colloc,vortex,C_Slope,varargin)
 % Calls:			trot												
 %					MATLAB 5.2 std fcns							
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-if isempty(varargin)
-   bit = [];
-else
-   bit = varargin{1};
-end
-
 N=[];
 step=size(colloc);
 [d e f]=size(vortex);
 a=e/2;
 b=a+1;
       
-
 for t=1:step	%Looping through panels
    alpha=C_Slope(t);
    
@@ -1100,21 +932,12 @@ for t=1:step	%Looping through panels
         r0(1)=0;                    %fix to get normals to not point the right way
       	r1=rc-ra;
       	r2=rc-rb;
-		  	
-	n = cross(r1,r2); %Passus to determine normal
-	
+   		n=cross(r1,r2);				%Passus to determine normal
       	nl=sqrt(sum((n.^2),2));    %of panel at collocationpoint.
-        R=n/nl;				%Normalizing normal.
-
-        if ~isempty(bit)
-	   N = [N;R];
-	else
-           R2=trot3(r0,R,-alpha);		%rotating wha trot
-           N=[N;R2'];
-	end
- 
+    		R=n/nl;							%Normalizing normal.
+         R2=trot3(r0,R,-alpha);		%rotating wha trot
+         N=[N;R2']; 
 end
-
 
 normal=N;
 end
@@ -1453,8 +1276,8 @@ function [xa,angle]=slope2(foil,varargin)
 %  Load: the airfoil data points
 
 %% Check type, file or formula...   %TM20070206
-if length(cell2mat(foil))==4
-    TYPE=1;       %Naca xxxx profile, see case 1 
+if length(str2num((cell2mat(foil))))==4
+   TYPE=1;       %Naca xxxx profile, see case 1 
 elseif strcmp(cell2mat(foil),'football')==0
     TYPE=2;       %Airfoil from file, see case 2
 elseif strcmp(cell2mat(foil),'football')
@@ -1463,8 +1286,7 @@ elseif strcmp(cell2mat(foil),'football')
     raggio   = varargin{2};
     ti       = varargin{3};
     semi     = varargin{4};
-    peri     = varargin{5};
-    bit	     = varargin{6};  
+    peri     = varargin{5};  
 else
     disp('Foil error, flatplate assumed')
     xa=[0 0 0];
@@ -1556,33 +1378,18 @@ switch TYPE
 
  %Football Type 
     case 3
-
-	ypsi = linspace(-corda/2,corda/2,101); % sarebbe la "x" 
-	ecce = semi/peri-1                   ; % eccentricità 
-        asci = -(semi/(1-ecce^2)*sqrt(1-(ypsi/(semi/sqrt(1-ecce^2))).^2)-ecce*semi/(1-ecce^2));  %ellisse, riferimento centrato sul fuoco
-        xa   = linspace(0,1,100);     %xa  è la ypsilon (nel nostro caso) normalizzata
-
-	if bit==1 %foro
-	    
-%		a=-(semi/(1-ecce^2)*(1-(ypsi/(semi/sqrt(1-ecce^2))).^2).^-5*-((1-ecce^2)/semi^2)*2.*ypsi)/2; % derivata di asci/2
-		camber = (asci-raggio)/2;  % ribaltata
-		%pendenza:rapporto incrementale
-                for i = 1:100
-                    a(i) = (camber(i+1)-camber(i))/(ypsi(i+1)-ypsi(i));
-		end
-
-	else      %bit==2
-	
-% 		a=-(semi/(1-ecce^2)*(1-(ypsi/(semi/sqrt(1-ecce^2))).^2).^-5*-((1-ecce^2)/semi^2)*2.*ypsi); % derivata di asci
-        	for i = 1:100                                           	
-                    a(i) = (asci(i+1)-asci(i))/(ypsi(i+1)-ypsi(i));
-        	end
-	
-	end
-
-	angle=atan(a); %pendenza (slope) 
-
-
+	ypsi = linspace(-corda/2,corda/2,1000);  % sarebbe la "x" 
+	ecce = semi/peri-1;                      % eccentricità 
+        asci = semi/(1-ecce^2)*sqrt(1-(ypsi/(semi/sqrt(1-ecce^2))).^2)-ecce*semi/(1-ecce^2);  %ellisse, riferimento centrato sul fuoco
+        xa   = linspace(0,1,1000);     %xa  è la ypsilon (nel nostro caso) normalizzata
+	%Mean camber line
+	%camber=-(asci+raggio)/2;  % ribaltata
+	%pendenza:rapporto incrementale
+	%for i=1:2000
+	%   a(i)=(camber(i+1)-camber(i))/(ypsi(101)-ypsi(100));
+	%end	    
+	a=-(semi/(1-ecce^2)*(1-(ypsi/(semi/sqrt(1-ecce^2))).^2).^-5*-((1-ecce^2)/semi^2)*2.*ypsi)/2; % derivata di asci/2
+	angle=atan(a); %pendenza di camber (la metà di quella dell'ellisse esterna)
 %%%%	if ti==1
 %%%%	   dfi=2*pi/(1000-1); 
 %%%%	   fi=0;
@@ -1762,150 +1569,14 @@ for i=1:ny
 end
 warning('on')
 end%function
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-
-
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function[panel]=tmesh696(corda,raggio,ti,semilatus,peri,nx,ny,nelem,bit)
-
-% TMESH696 : football mesh 3D
-%
-% viene richiamata per ogni partizione quando è presenteun foro.
-% Una partizione è una slice del guscio
- 
- 
-r          = raggio     ; % hole radius
-c          = corda      ; % hole length
-semi       = semilatus  ; % football semilatus rectum
-peri       = peri       ; % football periapse
-nx         = nx	        ; % panel chordwise
-ny         = ny	        ; % panel spanwise (ny=1)
-t          = ti	        ; % current partition
-nelem      = nelem      ; % half (simmetry) L.E. partitions (equal for T.E.)
-bit        = bit        ;        
-half_chord = corda/2    ;                 
-aux        = 2	        ; 
-
-
-%x    = linspace(-corda/2,corda/2,nx+1);     
-percent_x =  linspace(-half_chord,half_chord,nx+1)/half_chord;                                  
-%percent_c = cos(pi/2*(1-percent_x))		                                      
-percent_c = tanh(aux*percent_x)/tanh(aux)		     ;  %Thanks to Dr. Dario
-x         = percent_c*half_chord			     ;                                 
-
-ecce = semi/peri-1;                      % eccentricity 
-asci = semi/(1-ecce^2)*sqrt(1-(x/(semi/sqrt(1-ecce^2))).^2)-ecce*semi/(1-ecce^2);  %ellisse, riferimento centrato sul fuoco
-
-%calcolo i vertici dei pannelli, riferimento centrato sul fuoco
-
-dfi=pi/(nelem);  % /nelem*ny 
-	   
-Xe = []                ;   
-Ze = []                ;   
-Ye = []                ;   
-fi = -pi/2+(t-1)*ny*dfi;
-
-for j = 1:ny+1    % ny+nelem+1
-	       
-    if bit==1
-           		       
-       for i = 1:nx+1
-           ze(i) = (asci(i)+r)/2*sin(fi);  % camber surface (ellipse)
-           ye(i) = (asci(i)+r)/2*cos(fi);
-       end
-
-    else
-
-       for i = 1:nx+1
-           ze(i) = asci(i)*sin(fi);  % external surface (ellipse)
-           ye(i) = asci(i)*cos(fi);
-       end
-   
-    end
-                  
-    fi = fi+dfi         ; 
-    xe = ones(1,nx+1).*x;  
-    Xe = [Xe; xe]       ;  % matrice (ny+1)x(nx+1)
-    Ye = [Ye; ye]       ;
-    Ze = [Ze; ze]       ;
-
-end
-
-%Traslo coordinate: origine standard (L.E.  radice)  
-Xe = Xe+c/2   ;
-Ye = Ye       ;
-Ze = Ze+raggio;
-
-
-A(:,:,1) = Xe;
-A(:,:,2) = Ye;
-A(:,:,3) = Ze;
-
-
-h=0;
-for i = 1:ny
-
-    for j = 1:nx
-    
-        h=h+1                      ; 
-        panel(h,1,:) = A(i,j,:)    ;
-        panel(h,2,:) = A(i+1,j,:)  ;
-        panel(h,3,:) = A(i+1,j+1,:);
-        panel(h,4,:) = A(i,j+1,:)  ;
-        panel(h,5,:) = A(i,j,:)    ;
-                         
-    end
-
-end
-
-end % subroutine tmesh696
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [panel_area]=tarea(XYZ)
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Tarea: Subsidary function for TORNADO					   
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Calculates the area of each panel								
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%	Author:	Tomas Melin, KTH, Department of Aeronautics	%
-%				Copyright 2000											
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% CONTEXT:	Subsidaty function for TORNADO					
-% Called by:	coeff_create
-% 
-% Calls:			MATLAB 5.2 std fcns								
-% Loads:	none
-% 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-[a b c]=size(XYZ);
 
-for i = 1:a
-
-   p1 = [XYZ(i,1,1) XYZ(i,1,2) XYZ(i,1,3)];	%sets up the vectors 
-   p2 = [XYZ(i,2,1) XYZ(i,2,2) XYZ(i,2,3)];	%to the corners of the		
-   p3 = [XYZ(i,3,1) XYZ(i,3,2) XYZ(i,3,3)];	%panel.
-   p4 = [XYZ(i,4,1) XYZ(i,4,2) XYZ(i,4,3)];
-   
-   a = p2-p1;	%sets up the edge vectors
-   b = p4-p1;
-   c = p2-p3;
-   d = p4-p3;
-   
-   ar1 = norm(cross(b,a))/2;	%claculates the cross product of
-   ar2 = norm(cross(c,d))/2;	%two diagonal corners
-   
- 	panel_area(i) = ar1+ar2;	%Sums up the product to make the
-end						    %Area
-end% function
          

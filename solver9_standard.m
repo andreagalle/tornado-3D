@@ -62,105 +62,22 @@ results.dwcond=cond(w2);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Setting up right hand side %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-rhs=(setboundary5(lattice,state,geo))';  % ATTENZIONE:controllare se il trasposto va bene 
+rhs=(setboundary5(lattice,state,geo))';
 %disp('rhs... ok')
-%gamma= inv(w2)*rhs';
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Solving for rhs           %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%	
+% determina intensità vortice di ogni pannello
+gamma=w2\rhs';   % risolve il sistema x=A\B
+%disp('gauss... ok')
 
-try
-   geo.raggio;
-   %%%%%%%%%%%%%%%%%%%%%%%%%%
-   %NEW Solver	%     %  %
-   %%%%%%%%%%%%%%%%%%%%%%%%%%
-   %%Gauss-Seidel_HIGH-DRIVE
-
-   err  = 10        ;
-   Xnew = zeros(a,1);
-   tic   		  ;
-  
-   while any(find(err> 10^-8))
-          
-          Xold = Xnew;
-  
-          for i=1:a
-             
-              ci1 = 0;
-              ci2 = 0;
-          
-              if i>1
-                 ci1 = sum(w2(i,1:i-1)'.*Xnew(1:i-1));
-              end
-             
-              ci2     = sum(w2(i,i+1:a)'.*Xold(i+1:a));
-             
-              Xnew(i) = 1/w2(i,i)*(-ci1-ci2+rhs(i))   ;
-  
-          end
-  
-          err = abs(Xnew-Xold);
-  
-          if toc>300
-              disp(max(err));
-          end
-  
-   end
-  
-  
-   toc
-   gamma = Xnew;
-catch                              
-   %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   %Solving for rhs           %
-   %%%%%%%%%%%%%%%%%%%%%%%%%%%%	
-   % determina intensità vortice di ogni pannello
-   gamma=w2\rhs';   % risolve il sistema x=A\B
-   %disp('gauss... ok')
-end
 % righe di gamma= (nx*ny)*2 per simmetria (la parte simmetrica ha segno opposto),
 % cioè le righe sono pari al numero di CONTROLLPOINT
+% colonne di gamma sono pari al numero di vortici (pannelli) CHORDWISE 
+%nota: le righe sono uguali (con questa geometria)
 
 % w2 =(nx*ny)*2 * (nx*ny)*2   quadrata 
-%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Mgs     = tril(w2)                          ;
-%Ngs     = triu(w2,1)                        ;
-%Mgs_inv = inv(Mgs)                          ; 
-%Cgs     = -Mgs_inv*Ngs                      ;
-%Qgs     = Mgs_inv*rhs'                      ;
-%gamma_0 = ones(size(rhs',1),size(rhs',2))   ;
-%err     = 1			     	    ;
-%gamma   = [] 				    ;
-
-%if norm(Cgs,2)>1
-
-%   disp('Il metodo potrebbe non convergere')
-
-%end
-
-
-
-%tic;
-%while any(find(err>10^-6)) && toc<300
-
-%     gamma   = Cgs*gamma_0+Qgs   ;
-%     err     = abs(gamma-gamma_0);
-%     gamma_0 = gamma	         ;
-
-%end
-
-%if toc>300
-%  
-%   disp('Il metodo non ha raggiunto la precisione richiesta 10^-6')
-
-%end %New Solver
-%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% LU method
-
-%[L U] = lu(w2);
-%appo  = L\rhs'; 
-%gamma = U\appo; 
-%%%%%%%%%%%%%%%%%%%%%%%%%%               
-               
 
     if state.pgcorr==1
         %tdisp('Trying PG correction')
@@ -207,14 +124,14 @@ lehat(:,1)=le(:,1)./Lle;
 lehat(:,2)=le(:,2)./Lle;
 lehat(:,3)=le(:,3)./Lle;
 
-% adesso noofderiv=1 , dipendeva dalle condizoni al contorno (serviva per diff finite ecc..)  
+% noofderiv è il numero di vortici (pannelli) chordwise
 for j=1:nofderiv
-    IW(:,j,1)=DWX*gamma(:,j);  % InducedWind=Downwash(direzione)*intensità di cirolazione  (GAMMA=m^2/s , gamma = m/s)
+    IW(:,j,1)=DWX*gamma(:,j);
     IW(:,j,2)=DWY*gamma(:,j);
     IW(:,j,3)=DWZ*gamma(:,j);
     
     G(:,1)=gamma(:,j).*lehat(:,1);	% Aligning vorticity along panel vortex
-    G(:,2)=gamma(:,j).*lehat(:,2);	
+    G(:,2)=gamma(:,j).*lehat(:,2);	% gamma*l=GAMMA (per calcolare la forza)
     G(:,3)=gamma(:,j).*lehat(:,3);
 
     wind1=state.AS*([cos(state.alpha)*cos(state.betha) -cos(state.alpha)*sin(state.betha) sin(state.alpha)]); %Aligning with wind
@@ -239,7 +156,7 @@ for j=1:nofderiv
         
 end
 
-results.F=F;   % 3 matrici, componenti forze nelle tre direzioni su ogni pannello
+results.F=F;   % portanza
 results.FORCE=sum(F,1);			 %Total force (su tutto il velivolo)
 M=cross(C3,F,3);	             %Moments per panel
 results.M=M;
