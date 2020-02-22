@@ -4,6 +4,16 @@ alias l='ls -lrth'
 alias ll='ls -alrth'
 alias vi='vim -c "colorscheme desert" -c "set ignorecase" -c "set number"'
 
+export TORNADO_DIR=$PWD 
+
+# This actually gives the pwd the config was sourcede from
+# better: DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+# if not: dirname "$0"
+# have a look at: https://stackoverflow.com/questions/59895/how-to-get-the-source-directory-of-a-bash-script-from-within-the-script-itself
+
+export TORNADO_BIN=$TORNADO_DIR/bin
+
+export PATH=$PATH:$TORNADO_BIN
 
 PS1="\[\033[36m\]\u\[\033[m\]@\[\033[32m\]\h:\[\033[33;1m\]\W\[\033[m\]\$ " # change prompt colors
 
