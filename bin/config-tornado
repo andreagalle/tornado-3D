@@ -1,0 +1,18 @@
+#!/bin/bash
+
+alias l='ls -lrth'
+alias ll='ls -alrth'
+alias vi='vim -c "colorscheme desert" -c "set ignorecase" -c "set number"'
+
+
+PS1="\[\033[36m\]\u\[\033[m\]@\[\033[32m\]\h:\[\033[33;1m\]\W\[\033[m\]\$ " # change prompt colors
+
+export PS1
+
+LSCOLORS="di=1;36;40:ln=1;31;40:so=32:pi=33:ex=35;40:bd=37;40:cd=37;42:su=35;47:sg=35;47:tw=1;36;44:ow=1;36;44"
+
+export LSCOLORS
+
+export MYVIMRC=./config-vimrc
+
+# $EXINIT and $VIMINIT
